@@ -5,7 +5,7 @@ package event
 // / 定義されているEvent)を表す列挙型です。
 type Event int
 
-//go:generate stringer -type=Event event/event.go
+//go:generate stringer -type=Event event.go
 const (
 	ManualStart Event = iota
 )
