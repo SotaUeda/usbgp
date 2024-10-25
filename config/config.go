@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/SotaUeda/usbgp/bgptype"
+	"github.com/SotaUeda/usbgp/bgp"
 )
 
 type Config struct {
-	localAS  bgptype.ASNumber
+	localAS  bgp.ASNumber
 	localIP  net.IP
-	remoteAS bgptype.ASNumber
+	remoteAS bgp.ASNumber
 	remoteIP net.IP
 	mode     Mode
 }
@@ -24,8 +24,8 @@ const (
 )
 
 func NewConfig(
-	localAS bgptype.ASNumber, localIP string,
-	remoteAS bgptype.ASNumber, remoteIP string,
+	localAS bgp.ASNumber, localIP string,
+	remoteAS bgp.ASNumber, remoteIP string,
 	mode Mode,
 ) (*Config, error) {
 	lIP := net.ParseIP(localIP)

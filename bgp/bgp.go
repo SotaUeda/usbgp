@@ -1,3 +1,3 @@
-package bgptype
+package bgp
 
 type ASNumber uint16
