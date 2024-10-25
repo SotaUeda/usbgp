@@ -3,6 +3,17 @@ package peer
 import (
 	"fmt"
 	"log"
+
+	"github.com/SotaUeda/usbgp/config"
+	"github.com/SotaUeda/usbgp/event"
+)
+
+type State int
+
+//go:generate stringer -type=State peer.go
+const (
+	Idle State = iota
+	Connect
 )
 
 // BGPのRFCで示されている実装方針
@@ -11,14 +22,14 @@ import (
 // Peer構造体はRFC内で示されている実装方針に従ったイベント駆動ステートマシンです。
 type Peer struct {
 	State      State
-	eventQueue chan Event
-	config     *Config
+	eventQueue chan event.Event
+	config     *config.Config
 }
 
-func NewPeer(c *Config) *Peer {
+func NewPeer(c *config.Config) *Peer {
 	return &Peer{
 		// Stateはnil
-		eventQueue: make(chan Event),
+		eventQueue: make(chan event.Event),
 		config:     c,
 	}
 }
@@ -26,7 +37,7 @@ func NewPeer(c *Config) *Peer {
 func (p *Peer) Start() {
 	log.Println("peer is started.")
 	p.State = Idle
-	go func() { p.eventQueue <- ManualStartEvent }()
+	go func() { p.eventQueue <- event.ManualStart }()
 }
 
 func (p *Peer) Next() error {
@@ -38,10 +49,10 @@ func (p *Peer) Next() error {
 	return nil
 }
 
-func (p *Peer) handleEvent(ev Event) error {
+func (p *Peer) handleEvent(ev event.Event) error {
 	switch p.State {
 	case Idle:
-		if ev == ManualStartEvent {
+		if ev == event.ManualStart {
 			p.State = Connect
 		}
 	default:

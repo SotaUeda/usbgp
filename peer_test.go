@@ -2,15 +2,17 @@ package peer
 
 import (
 	"testing"
+
+	"github.com/SotaUeda/usbgp/config"
 )
 
 func TestTransitionToConnectState(t *testing.T) {
-	config, err := NewConfig(
+	config, err := config.NewConfig(
 		64512,
 		"127.0.0.1",
 		65413,
 		"127.0.0.2",
-		Active,
+		config.Active,
 	)
 	if err != nil {
 		t.Fatalf("failed to create config: %v", err)

@@ -1,12 +1,14 @@
 package main
 
-import peer "github.com/SotaUeda/usbgp"
+import (
+	"github.com/SotaUeda/usbgp/config"
+)
 
 func main() {
 	// TODO
 }
 
-func paseConfig(s string) (*peer.Config, error) {
+func paseConfig(s string) (*config.Config, error) {
 	// TODO
 	return nil, nil
 }

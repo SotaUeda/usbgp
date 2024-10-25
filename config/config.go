@@ -1,14 +1,16 @@
-package peer
+package config
 
 import (
 	"fmt"
 	"net"
+
+	"github.com/SotaUeda/usbgp/bgptype"
 )
 
 type Config struct {
-	localAS  ASNumber
+	localAS  bgptype.ASNumber
 	localIP  net.IP
-	remoteAS ASNumber
+	remoteAS bgptype.ASNumber
 	remoteIP net.IP
 	mode     Mode
 }
@@ -21,7 +23,11 @@ const (
 	Active
 )
 
-func NewConfig(localAS ASNumber, localIP string, remoteAS ASNumber, remoteIP string, mode Mode) (*Config, error) {
+func NewConfig(
+	localAS bgptype.ASNumber, localIP string,
+	remoteAS bgptype.ASNumber, remoteIP string,
+	mode Mode,
+) (*Config, error) {
 	lIP := net.ParseIP(localIP)
 	if lIP == nil {
 		return nil, fmt.Errorf("invalid local IP address: %s", localIP)
