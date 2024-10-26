@@ -1,8 +1,10 @@
 package peer
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/event"
@@ -40,11 +42,17 @@ func (p *Peer) Start() {
 	go func() { p.eventQueue <- event.ManualStart }()
 }
 
-func (p *Peer) Next() error {
+func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
+	defer wg.Done()
 	select {
+	case <-ctx.Done():
+		log.Println("Peer Next is done.")
+		// TODO: 終了処理
 	case ev := <-p.eventQueue:
 		log.Printf("event is occured, event=%v.\n", ev)
-		p.handleEvent(ev)
+		if err := p.handleEvent(ev); err != nil {
+			return err
+		}
 	}
 	return nil
 }

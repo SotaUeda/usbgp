@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"context"
+	"sync"
 	"testing"
 
 	"github.com/SotaUeda/usbgp/config"
@@ -19,7 +21,10 @@ func TestTransitionToConnectState(t *testing.T) {
 	}
 	peer := NewPeer(config)
 	peer.Start()
-	err = peer.Next()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() { err = peer.Next(context.Background(), &wg) }()
+	wg.Wait()
 	if err != nil {
 		t.Fatalf("failed to handle event: %v", err)
 	}
