@@ -28,10 +28,13 @@ func TestPaseConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := paseConfig(tc.args)
-			if tc.want == nil && (got != nil || err == nil) {
-				t.Errorf("%s: want %v, got %v, err %v", tc.name, tc.want, got, err)
-			} else {
-				log.Printf("%s: err %v", tc.name, err)
+			if tc.want == nil {
+				if got != nil || err == nil {
+					t.Errorf("%s: want nil, got %v, err %v", tc.name, got, err)
+				} else {
+					log.Printf("%s: err %v", tc.name, err)
+					return
+				}
 			}
 			if tc.want.String() != got.String() {
 				t.Errorf("%s:  want %v, got %v", tc.name, tc.want, got)
