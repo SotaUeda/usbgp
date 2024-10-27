@@ -25,6 +25,7 @@ const (
 type Peer struct {
 	State      State
 	eventQueue chan event.Event
+	conn       *conn
 	config     *config.Config
 }
 
@@ -32,6 +33,7 @@ func NewPeer(c *config.Config) *Peer {
 	return &Peer{
 		// Stateはnil
 		eventQueue: make(chan event.Event),
+		conn:       nil,
 		config:     c,
 	}
 }
@@ -47,7 +49,7 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 	select {
 	case <-ctx.Done():
 		log.Println("Peer Next is done.")
-		// TODO: 終了処理
+		return p.Idle()
 	case ev := <-p.eventQueue:
 		log.Printf("event is occured, event=%v.\n", ev)
 		if err := p.handleEvent(ev); err != nil {
@@ -57,10 +59,27 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
+func (p *Peer) Idle() error {
+	if p.conn != nil {
+		if err := p.conn.Close(); err != nil {
+			return err
+		}
+	}
+	close(p.eventQueue)
+	p.State = Idle
+	return nil
+}
+
 func (p *Peer) handleEvent(ev event.Event) error {
 	switch p.State {
 	case Idle:
 		if ev == event.ManualStart {
+			var err error
+			p.conn, err = newConnect(p.config)
+			if err != nil {
+				return fmt.Errorf("connection error: %v", err)
+			}
+			go func() { p.eventQueue <- event.TCPConnectionConfirmed }()
 			p.State = Connect
 		}
 	default:

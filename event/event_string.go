@@ -9,11 +9,12 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[ManualStart-0]
+	_ = x[TCPConnectionConfirmed-1]
 }
 
-const _Event_name = "ManualStart"
+const _Event_name = "ManualStartTCPConnectionConfirmed"
 
-var _Event_index = [...]uint8{0, 11}
+var _Event_index = [...]uint8{0, 11, 33}
 
 func (i Event) String() string {
 	if i < 0 || i >= Event(len(_Event_index)-1) {

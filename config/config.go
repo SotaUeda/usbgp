@@ -44,3 +44,23 @@ func NewConfig(
 		mode:     mode,
 	}, nil
 }
+
+func (c *Config) LocalAS() bgp.ASNumber {
+	return c.localAS
+}
+
+func (c *Config) LocalIP() net.IP {
+	return c.localIP
+}
+
+func (c *Config) RemoteAS() bgp.ASNumber {
+	return c.remoteAS
+}
+
+func (c *Config) RemoteIP() net.IP {
+	return c.remoteIP
+}
+
+func (c *Config) Mode() Mode {
+	return c.mode
+}
