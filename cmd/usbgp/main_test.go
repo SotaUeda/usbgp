@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -36,7 +37,7 @@ func TestPaseConfig(t *testing.T) {
 					return
 				}
 			}
-			if tc.want.String() != got.String() {
+			if fmt.Sprintf("%+v", tc.want) != fmt.Sprintf("%+v", got) {
 				t.Errorf("%s:  want %v, got %v", tc.name, tc.want, got)
 			}
 		})

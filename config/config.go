@@ -44,10 +44,3 @@ func NewConfig(
 		mode:     mode,
 	}, nil
 }
-
-func (c *Config) String() string {
-	return fmt.Sprintf(
-		"localAS: %d, localIP: %s, remoteAS: %d, remoteIP: %s, mode: %s",
-		c.localAS, c.localIP, c.remoteAS, c.remoteIP, c.mode,
-	)
-}
