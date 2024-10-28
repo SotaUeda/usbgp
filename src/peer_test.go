@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/SotaUeda/usbgp/config"
 )
 
 func TestTransitionToConnectState(t *testing.T) {
 	// テスト用にPort番号を変更
-	BGPPort = 1790
+	// BGPPort = 1790
 	cfg, err := config.NewConfig(
 		64512,
 		"127.0.0.1",
@@ -57,6 +58,7 @@ func TestTransitionToConnectState(t *testing.T) {
 	if err := <-errCh; err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(1 * time.Second) // remote_peerが起動するのを待つため
 	wg.Add(1)
 	go func() { err = peer.Next(ctx, &wg) }()
 	wg.Wait()
