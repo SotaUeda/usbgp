@@ -13,8 +13,8 @@ import (
 	"time"
 
 	peer "github.com/SotaUeda/usbgp"
-	"github.com/SotaUeda/usbgp/bgp"
 	"github.com/SotaUeda/usbgp/config"
+	"github.com/SotaUeda/usbgp/internal/bgp"
 )
 
 func main() {

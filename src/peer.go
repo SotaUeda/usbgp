@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/SotaUeda/usbgp/config"
-	"github.com/SotaUeda/usbgp/event"
+	"github.com/SotaUeda/usbgp/internal/event"
 )
 
 type State int

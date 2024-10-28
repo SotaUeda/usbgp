@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/SotaUeda/usbgp/bgp"
+	"github.com/SotaUeda/usbgp/internal/bgp"
 )
 
 type Config struct {
