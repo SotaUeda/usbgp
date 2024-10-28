@@ -82,8 +82,6 @@ func (p *Peer) handleEvent(ev event.Event) error {
 			go func() { p.eventQueue <- event.TCPConnectionConfirmed }()
 			p.State = Connect
 		}
-	default:
-		return fmt.Errorf("Peer is not started: %v", p.State)
 	}
 	return nil
 }

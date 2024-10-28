@@ -19,9 +19,7 @@ import (
 )
 
 func main() {
-	cStrs := []string{
-		"64512 127.0.0.1 65413 127.0.0.2 active",
-	}
+	cStrs := os.Args[1:]
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
