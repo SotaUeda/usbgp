@@ -29,7 +29,7 @@ type Peer struct {
 	config     *config.Config
 }
 
-func NewPeer(c *config.Config) *Peer {
+func New(c *config.Config) *Peer {
 	return &Peer{
 		// Stateはnil
 		eventQueue: make(chan event.Event),

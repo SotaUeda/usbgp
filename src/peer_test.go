@@ -13,7 +13,7 @@ import (
 func TestTransitionToConnectState(t *testing.T) {
 	// テスト用にPort番号を変更
 	// BGPPort = 1790
-	cfg, err := config.NewConfig(
+	cfg, err := config.New(
 		64512,
 		"127.0.0.1",
 		65413,
@@ -23,7 +23,7 @@ func TestTransitionToConnectState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create config: %v", err)
 	}
-	peer := NewPeer(cfg)
+	peer := New(cfg)
 	peer.Start()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -32,7 +32,7 @@ func TestTransitionToConnectState(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
-		config, err := config.NewConfig(
+		config, err := config.New(
 			65413,
 			"127.0.0.2",
 			64512,
@@ -43,7 +43,7 @@ func TestTransitionToConnectState(t *testing.T) {
 			errCh <- fmt.Errorf("failed to create config: %v", err)
 			return
 		}
-		peer := NewPeer(config)
+		peer := New(config)
 		peer.Start()
 		wg.Add(1)
 		go func() {

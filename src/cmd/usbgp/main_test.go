@@ -9,8 +9,8 @@ import (
 )
 
 func TestPaseConfig(t *testing.T) {
-	actConf, _ := config.NewConfig(64512, "198.51.100.10", 65413, "198.51.100.20", config.Active)
-	psvConf, _ := config.NewConfig(64513, "198.51.100.20", 65412, "198.51.100.10", config.Passive)
+	actConf, _ := config.New(64512, "198.51.100.10", 65413, "198.51.100.20", config.Active)
+	psvConf, _ := config.New(64513, "198.51.100.20", 65412, "198.51.100.10", config.Passive)
 	tests := []struct {
 		name string
 		args string
@@ -28,7 +28,7 @@ func TestPaseConfig(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := paseConfig(tc.args)
+			got, err := parseConfig(tc.args)
 			if tc.want == nil {
 				if got != nil || err == nil {
 					t.Errorf("%s: want nil, got %v, err %v", tc.name, got, err)

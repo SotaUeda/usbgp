@@ -23,7 +23,18 @@ const (
 	Active
 )
 
-func NewConfig(
+func ParseMode(s string) (Mode, error) {
+	switch s {
+	case "passive", "PASSIVE", "Passive":
+		return Passive, nil
+	case "active", "ACTIVE", "Active":
+		return Active, nil
+	default:
+		return 0, fmt.Errorf("invalid mode: %s", s)
+	}
+}
+
+func New(
 	localAS bgp.ASNumber, localIP string,
 	remoteAS bgp.ASNumber, remoteIP string,
 	mode Mode,
