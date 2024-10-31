@@ -16,6 +16,7 @@ type State int
 const (
 	Idle State = iota
 	Connect
+	OpenSent
 )
 
 // BGPのRFCで示されている実装方針
@@ -55,8 +56,8 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 		if err := p.handleEvent(ev); err != nil {
 			return err
 		}
+		return nil
 	}
-	return nil
 }
 
 func (p *Peer) Idle() error {
@@ -80,6 +81,10 @@ func (p *Peer) handleEvent(ev event.Event) error {
 			}
 			go func() { p.eventQueue <- event.TCPConnectionConfirmed }()
 			p.State = Connect
+		}
+	case Connect:
+		if ev == event.TCPConnectionConfirmed {
+			p.State = OpenSent
 		}
 	}
 	return nil

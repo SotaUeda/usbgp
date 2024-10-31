@@ -50,3 +50,21 @@ stateDiagram-v2
   }
   Established --> Established
 ```
+
+## BGP Message
+### Headerフォーマット
+|名前|bit数|説明|
+|---|---|---|
+|Marker|128|全て1。互換性のために存在|
+|Length|16|Headerを含めたBGP Message全体のバイト数を表す符号なし整数値|
+|Type|8|BGP Messageの種類を表す符号なし整数値。<br>1: OPEN<br>2: UPDATE<br>3: NOTIFICATION<br>4: KEEPALIVE|
+
+### Open Messageフォーマット
+|名前|bit数|説明|
+|---|---|---|
+|Version|8|BGPのバージョンを表す符号なし整数値<br>現在のVersionは4|
+|My Autonomous System|16|送信者のAS番号を表す符号なし整数値|
+|Hold Time|16|Hold Timerの秒数を表す符号なし整数値<br>BGPではEstablishedになった後、<br>定期的にKeepalive Messageを交換する<br>HoldTimeの秒数だけKeepaliveを受信できなかった時、<br>Peerがダウンしていると見なす<br>0でこの機能を使用しないことを表す<br>本実装ではHold Timerを実装しないため0とする #TODO|
+|BGP Identifer|32|送信者のIPアドレス(?)|
+|Optional Parameters Length|8|Optional Parametersのオクテット数を表す符号なし整数値|
+|Optional Parameters|非固定|オプショナルなパラメータ<br>本実装では使用しない|
