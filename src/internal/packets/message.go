@@ -2,7 +2,7 @@ package packets
 
 type Type uint8
 
-//go:generate stringer -type=Message message.go
+//go:generate stringer -type=Type message.go
 const (
 	Open Type = iota
 )

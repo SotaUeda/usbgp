@@ -10,11 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[Idle-0]
 	_ = x[Connect-1]
+	_ = x[OpenSent-2]
 }
 
-const _State_name = "IdleConnect"
+const _State_name = "IdleConnectOpenSent"
 
-var _State_index = [...]uint8{0, 4, 11}
+var _State_index = [...]uint8{0, 4, 11, 19}
 
 func (i State) String() string {
 	if i < 0 || i >= State(len(_State_index)-1) {
