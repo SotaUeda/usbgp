@@ -1,4 +1,4 @@
-package packets
+package message
 
 type Type uint8
 

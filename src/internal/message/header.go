@@ -1,3 +1,3 @@
-package packets
+package message
 
 type Header struct{}
