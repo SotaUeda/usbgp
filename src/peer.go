@@ -65,7 +65,6 @@ func (p *Peer) Idle() error {
 			return err
 		}
 	}
-	close(p.eventQueue)
 	p.State = Idle
 	return nil
 }
