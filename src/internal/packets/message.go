@@ -4,7 +4,7 @@ type Type uint8
 
 //go:generate stringer -type=Type message.go
 const (
-	Open Type = iota
+	Open Type = 1
 )
 
 func (t Type) Uint8() uint8 {
