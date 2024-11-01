@@ -52,19 +52,20 @@ stateDiagram-v2
 ```
 
 ## BGP Message
-### Headerフォーマット
-|名前|bit数|説明|
-|---|---|---|
-|Marker|128|全て1。互換性のために存在|
-|Length|16|Headerを含めたBGP Message全体のバイト数を表す符号なし整数値|
-|Type|8|BGP Messageの種類を表す符号なし整数値。<br>1: OPEN<br>2: UPDATE<br>3: NOTIFICATION<br>4: KEEPALIVE|
+### Headerフォーマット(19byte)
+|名前|bit数|Octet|説明|
+|---|---|---|---|
+|Marker|128|1-16|全て1。互換性のために存在|
+|Length|16|17-18|Headerを含めたBGP Message全体のバイト数を表す符号なし整数値|
+|Type|8|19|BGP Messageの種類を表す符号なし整数値。<br>1: OPEN<br>2: UPDATE<br>3: NOTIFICATION<br>4: KEEPALIVE|
 
-### Open Messageフォーマット
-|名前|bit数|説明|
-|---|---|---|
-|Version|8|BGPのバージョンを表す符号なし整数値<br>現在のVersionは4|
-|My Autonomous System|16|送信者のAS番号を表す符号なし整数値|
-|Hold Time|16|Hold Timerの秒数を表す符号なし整数値<br>BGPではEstablishedになった後、<br>定期的にKeepalive Messageを交換する<br>HoldTimeの秒数だけKeepaliveを受信できなかった時、<br>Peerがダウンしていると見なす<br>0でこの機能を使用しないことを表す<br>本実装ではHold Timerを実装しないため0とする #TODO|
-|BGP Identifer|32|送信者のIPアドレス(?)|
-|Optional Parameters Length|8|Optional Parametersのオクテット数を表す符号なし整数値|
-|Optional Parameters|非固定|オプショナルなパラメータ<br>本実装では使用しない|
+### Open Messageフォーマット(29 + option byte)
+|名前|bit数|Octet|説明|
+|---|---|---|---|
+|Header|152|1-19|BGP Message Header|
+|Version|8|20|BGPのバージョンを表す符号なし整数値<br>現在のVersionは4|
+|My Autonomous System|16|21-22|送信者のAS番号を表す符号なし整数値|
+|Hold Time|16|23-24|Hold Timerの秒数を表す符号なし整数値<br>BGPではEstablishedになった後、<br>定期的にKeepalive Messageを交換する<br>HoldTimeの秒数だけKeepaliveを受信できなかった時、<br>Peerがダウンしていると見なす<br>0でこの機能を使用しないことを表す<br>本実装ではHold Timerを実装しないため0とする #TODO|
+|BGP Identifer|32|25-28|送信者のIPアドレス(?)|
+|Optional Parameters Length|8|29|Optional Parametersのオクテット数を表す符号なし整数値|
+|Optional Parameters|非固定||オプショナルなパラメータ<br>本実装では使用しない|

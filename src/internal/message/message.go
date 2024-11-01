@@ -1,5 +1,7 @@
 package message
 
+import "fmt"
+
 type Type uint8
 
 //go:generate stringer -type=Type message.go
@@ -7,22 +9,63 @@ const (
 	Open Type = 1
 )
 
-func (t Type) Uint8() uint8 {
-	return uint8(t)
+func newType(t uint8) (Type, error) {
+	if t <= 0 || t > 4 {
+		return 0, NewConvMsgErr(fmt.Sprintf("BGPのTypeは1-4が期待されています: %d", t))
+	}
+	return Type(t), nil
 }
 
 type Message interface {
 	Type() Type
-	bytes() ([]byte, error)
-	String() string
+	marshalBytes() ([]byte, error)
+	unMarshalBytes([]byte) error
 }
 
-func New(b []byte) (Message, error) {
-	// TODO
-	return nil, nil
+// BGP Message version
+type version uint8
+
+func newVersion(v uint8) (version, error) {
+	if v <= 4 {
+		return defaultVersion, NewConvMsgErr(
+			fmt.Sprintf("BGPのVersionは1-4が期待されています: %d", v))
+	}
+	return version(v), nil
 }
 
-func Bytes(Message) ([]byte, error) {
-	// TODO
-	return nil, nil
+var defaultVersion = version(4)
+
+// BGP Message HoldTime
+type holdtime uint16
+
+func newHoldtime(ht uint16) (holdtime, error) {
+	return holdtime(ht), nil
+}
+
+var defaultHoldtime = holdtime(0)
+
+// BGP Message
+func UnMarshal(b []byte) (Message, error) {
+	hLen := 19
+	if len(b) < hLen {
+		return nil, NewConvMsgErr(fmt.Sprintf("Byte列が短すぎます: %d", len(b)))
+	}
+	h := &Header{}
+	err := h.unMarshalBytes(b[:hLen])
+	if err != nil {
+		return nil, err
+	}
+	switch h.type_ {
+	case Open:
+		o := &OpenMessage{header: h}
+		err := o.unMarshalBytes(b[hLen:])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.type_))
+}
+
+func Marshal(m Message) ([]byte, error) {
+	return m.marshalBytes()
 }

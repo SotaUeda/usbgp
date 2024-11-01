@@ -14,3 +14,7 @@ func ParseASNumber(s string) (ASNumber, error) {
 	}
 	return ASNumber(as), nil
 }
+
+func (a ASNumber) Uint16() uint16 {
+	return uint16(a)
+}
