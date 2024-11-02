@@ -26,7 +26,7 @@ type Message interface {
 type version uint8
 
 func newVersion(v uint8) (version, error) {
-	if v <= 4 {
+	if v > 4 {
 		return defaultVersion, NewConvMsgErr(
 			fmt.Sprintf("BGPのVersionは1-4が期待されています: %d", v))
 	}
@@ -62,8 +62,10 @@ func UnMarshal(b []byte) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
+		return o, nil
+	default:
+		return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.type_))
 	}
-	return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.type_))
 }
 
 func Marshal(m Message) ([]byte, error) {

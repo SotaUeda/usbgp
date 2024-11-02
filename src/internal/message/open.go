@@ -1,6 +1,7 @@
 package message
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/SotaUeda/usbgp/internal/bgp"
@@ -27,12 +28,18 @@ func NewOpenMsg(as bgp.ASNumber, ip net.IP) (*OpenMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	ipv4 := ip.To4()
+	if ipv4 == nil {
+		return nil, NewConvBytesErr(
+			fmt.Sprintf("IPv4アドレスにのみ対応しています: %v", ip),
+		)
+	}
 	return &OpenMessage{
 		header:   h,
 		version:  defaultVersion,
 		myAS:     as,
 		holdtime: defaultHoldtime,
-		bgpID:    ip,
+		bgpID:    ipv4,
 		optsLen:  0,
 		opts:     []byte{},
 	}, nil
@@ -74,46 +81,53 @@ func (o *OpenMessage) marshalBytes() ([]byte, error) {
 
 func (o *OpenMessage) unMarshalBytes(b []byte) error {
 	// OpenMessageの長さは29byte以上
-	if len(b) < 29 {
-		return NewConvMsgErr("OpenMessageのByte列が短すぎます")
-	}
+	oLen := 29
+	hLen := 19
+	p := 0
 	// Header
 	// message.goから利用する場合、Headerは作成済
 	if o.header == nil {
-		hLen := 19
 		h := &Header{}
 		err := h.unMarshalBytes(b[:hLen])
 		if err != nil {
 			return err
 		}
 		o.header = h
+		p += hLen
+	} else {
+		oLen -= hLen
+	}
+	if len(b) < oLen {
+		return NewConvMsgErr("OpenMessageのByte列が短すぎます")
 	}
 	var err error
 	// Version
-	o.version, err = newVersion(b[19])
+	o.version, err = newVersion(b[p])
 	if err != nil {
 		return err
 	}
+	p += 1
 	// My Autonomous System
-	o.myAS, err = bgp.ParseASNumber(string(b[20:22]))
-	if err != nil {
-		return NewConvMsgErr(err.Error())
-	}
+	o.myAS = bgp.ASNumber(uint16(b[p])<<8 | uint16(b[p+1]))
+	p += 2
 	// Hold Time
-	o.holdtime, err = newHoldtime(uint16(b[22])<<8 | uint16(b[23]))
+	o.holdtime, err = newHoldtime(uint16(b[p])<<8 | uint16(b[p+1]))
 	if err != nil {
 		return err
 	}
+	p += 2
 	// BGP Identifier
-	o.bgpID = net.IP(b[24:28]).To4()
+	o.bgpID = net.IP(b[p : p+4]).To4()
 	if o.bgpID == nil {
 		return NewConvMsgErr("BGP Identifierの変換に失敗しました")
 	}
+	p += 4
 	// Optional Parameters Length
-	o.optsLen = b[28]
+	o.optsLen = b[p]
+	p += 1
 	// Optional Parameters
 	if o.optsLen > 0 {
-		o.opts = b[29:]
+		o.opts = b[p:]
 	} else {
 		o.opts = []byte{}
 	}
