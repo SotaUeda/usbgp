@@ -106,28 +106,23 @@ func (o *OpenMessage) unMarshalBytes(b []byte) error {
 	if err != nil {
 		return err
 	}
-	p += 1
 	// My Autonomous System
-	o.myAS = bgp.ASNumber(uint16(b[p])<<8 | uint16(b[p+1]))
-	p += 2
+	o.myAS = bgp.ASNumber(uint16(b[p+1])<<8 | uint16(b[p+2]))
 	// Hold Time
-	o.holdtime, err = newHoldtime(uint16(b[p])<<8 | uint16(b[p+1]))
+	o.holdtime, err = newHoldtime(uint16(b[p+3])<<8 | uint16(b[p+4]))
 	if err != nil {
 		return err
 	}
-	p += 2
 	// BGP Identifier
-	o.bgpID = net.IP(b[p : p+4]).To4()
+	o.bgpID = net.IP(b[p+5 : p+9]).To4()
 	if o.bgpID == nil {
 		return NewConvMsgErr("BGP Identifierの変換に失敗しました")
 	}
-	p += 4
 	// Optional Parameters Length
-	o.optsLen = b[p]
-	p += 1
+	o.optsLen = b[p+9]
 	// Optional Parameters
 	if o.optsLen > 0 {
-		o.opts = b[p:]
+		o.opts = b[p+10:]
 	} else {
 		o.opts = []byte{}
 	}
