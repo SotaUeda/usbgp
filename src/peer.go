@@ -8,6 +8,7 @@ import (
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/event"
+	"github.com/SotaUeda/usbgp/internal/message"
 )
 
 type State int
@@ -84,6 +85,19 @@ func (p *Peer) handleEvent(ev event.Event) error {
 		}
 	case Connect:
 		if ev == event.TCPConnectionConfirmed {
+			if p.conn == nil {
+				return fmt.Errorf("TCP Conectionが確立されていません")
+			}
+			m, err := message.NewOpenMsg(
+				p.config.LocalAS(),
+				p.config.LocalIP(),
+			)
+			if err != nil {
+				return err
+			}
+			if err = p.conn.writeMsg(m); err != nil {
+				return err
+			}
 			p.State = OpenSent
 		}
 	}

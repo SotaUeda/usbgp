@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/SotaUeda/usbgp/config"
+	"github.com/SotaUeda/usbgp/internal/message"
 )
 
 var BGPPort = 179
@@ -14,6 +15,7 @@ var BGPPort = 179
 // BGPMessageのデータを送受信します。
 type conn struct {
 	*net.TCPConn
+	buf []byte
 }
 
 func newConnect(cfg *config.Config) (*conn, error) {
@@ -38,6 +40,7 @@ func (c *conn) connect(cfg *config.Config) error {
 			return fmt.Errorf("connection accept error: %v", err)
 		}
 	}
+	c.buf = make([]byte, 0, 1500)
 	return nil
 }
 
@@ -72,5 +75,17 @@ func (c *conn) accept(cfg *config.Config) error {
 		return err
 	}
 	c.TCPConn = conn
+	return nil
+}
+
+func (c *conn) writeMsg(m message.Message) error {
+	b, err := message.Marshal(m)
+	if err != nil {
+		return err
+	}
+	_, err = c.Write(b)
+	if err != nil {
+		return err
+	}
 	return nil
 }
