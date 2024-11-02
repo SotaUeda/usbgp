@@ -83,7 +83,6 @@ func (o *OpenMessage) unMarshalBytes(b []byte) error {
 	// OpenMessageの長さは29byte以上
 	oLen := 29
 	hLen := 19
-	p := 0
 	// Header
 	// message.goから利用する場合、Headerは作成済
 	if o.header == nil {
@@ -93,7 +92,7 @@ func (o *OpenMessage) unMarshalBytes(b []byte) error {
 			return err
 		}
 		o.header = h
-		p += hLen
+		b = b[hLen:]
 	} else {
 		oLen -= hLen
 	}
@@ -102,27 +101,27 @@ func (o *OpenMessage) unMarshalBytes(b []byte) error {
 	}
 	var err error
 	// Version
-	o.version, err = newVersion(b[p])
+	o.version, err = newVersion(b[0])
 	if err != nil {
 		return err
 	}
 	// My Autonomous System
-	o.myAS = bgp.ASNumber(uint16(b[p+1])<<8 | uint16(b[p+2]))
+	o.myAS = bgp.ASNumber(uint16(b[1])<<8 | uint16(b[2]))
 	// Hold Time
-	o.holdtime, err = newHoldtime(uint16(b[p+3])<<8 | uint16(b[p+4]))
+	o.holdtime, err = newHoldtime(uint16(b[3])<<8 | uint16(b[4]))
 	if err != nil {
 		return err
 	}
 	// BGP Identifier
-	o.bgpID = net.IP(b[p+5 : p+9]).To4()
+	o.bgpID = net.IP(b[5:9]).To4()
 	if o.bgpID == nil {
 		return NewConvMsgErr("BGP Identifierの変換に失敗しました")
 	}
 	// Optional Parameters Length
-	o.optsLen = b[p+9]
+	o.optsLen = b[9]
 	// Optional Parameters
 	if o.optsLen > 0 {
-		o.opts = b[p+10:]
+		o.opts = b[10:]
 	} else {
 		o.opts = []byte{}
 	}
