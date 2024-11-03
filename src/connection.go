@@ -34,13 +34,15 @@ func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 	switch cfg.Mode() {
 	case config.Active:
 		// エラーが発生した場合、接続を繰り返す
+		// TODO: Timeout、エラーハンドリング
 		for {
-			ech := make(chan error)
-			go func() { ech <- c.dial(cfg) }()
 			select {
 			case <-ctx.Done():
 				return nil
-			case err := <-ech:
+			case err := <-c.dial(cfg):
+				if err == nil {
+					return nil
+				}
 				log.Printf("connection dial error: %v", err)
 				time.Sleep(1 * time.Second)
 			}
@@ -55,7 +57,7 @@ func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func (c *conn) dial(cfg *config.Config) error {
+func (c *conn) dial(cfg *config.Config) <-chan error {
 	laddr := &net.TCPAddr{
 		IP:   cfg.LocalIP(),
 		Port: BGPPort,
@@ -64,12 +66,17 @@ func (c *conn) dial(cfg *config.Config) error {
 		IP:   cfg.RemoteIP(),
 		Port: BGPPort,
 	}
-	conn, err := net.DialTCP("tcp", laddr, raddr)
-	if err != nil {
-		return err
-	}
-	c.TCPConn = conn
-	return nil
+	ech := make(chan error)
+	go func() {
+		conn, err := net.DialTCP("tcp", laddr, raddr)
+		if err != nil {
+			ech <- err
+			return
+		}
+		c.TCPConn = conn
+		ech <- nil
+	}()
+	return ech
 }
 
 func (c *conn) accept(cfg *config.Config) error {
