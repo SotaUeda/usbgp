@@ -38,7 +38,7 @@ func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 		for {
 			select {
 			case <-ctx.Done():
-				return nil
+				return fmt.Errorf("connection dial canceled")
 			case err := <-c.dial(cfg):
 				if err == nil {
 					return nil
