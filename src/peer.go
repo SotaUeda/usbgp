@@ -54,7 +54,7 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 		return p.Idle()
 	case ev := <-p.eventQueue:
 		log.Printf("event is occured, event=%v.\n", ev)
-		if err := p.handleEvent(ev); err != nil {
+		if err := p.handleEvent(ctx, ev); err != nil {
 			return err
 		}
 		return nil
@@ -71,12 +71,12 @@ func (p *Peer) Idle() error {
 	return nil
 }
 
-func (p *Peer) handleEvent(ev event.Event) error {
+func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 	switch p.State {
 	case Idle:
 		if ev == event.ManualStart {
 			var err error
-			p.conn, err = newConnect(p.config)
+			p.conn, err = newConnect(ctx, p.config)
 			if err != nil {
 				return fmt.Errorf("connection error: %v", err)
 			}

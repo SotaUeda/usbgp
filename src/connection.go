@@ -1,8 +1,11 @@
 package peer
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net"
+	"time"
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/message"
@@ -18,21 +21,29 @@ type conn struct {
 	buf []byte
 }
 
-func newConnect(cfg *config.Config) (*conn, error) {
+func newConnect(ctx context.Context, cfg *config.Config) (*conn, error) {
 	c := &conn{}
-	err := c.connect(cfg)
+	err := c.connect(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (c *conn) connect(cfg *config.Config) error {
+func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 	switch cfg.Mode() {
 	case config.Active:
-		err := c.dial(cfg)
-		if err != nil {
-			return fmt.Errorf("connection dial error: %v", err)
+		// エラーが発生した場合、接続を繰り返す
+		for {
+			ech := make(chan error)
+			go func() { ech <- c.dial(cfg) }()
+			select {
+			case <-ctx.Done():
+				return nil
+			case err := <-ech:
+				log.Printf("connection dial error: %v", err)
+				time.Sleep(1 * time.Second)
+			}
 		}
 	case config.Passive:
 		err := c.accept(cfg)
