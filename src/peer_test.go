@@ -135,3 +135,44 @@ func TestTransitionToOpenSentState(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 }
+
+func TestTransitionToOpenConfirmState(t *testing.T) {
+	// remote peer
+	rErrCh := make(chan error)
+	wg.Add(1)
+	go func() {
+		go func() {
+			err := rp.Next(ctx, &wg)
+			if err != nil {
+				rErrCh <- fmt.Errorf("failed to handle event: %v", err)
+				return
+			}
+			rErrCh <- nil
+		}()
+	}()
+	time.Sleep(1 * time.Second) // remote peerが遷移するよう、1秒待つ
+	// local peer
+	lErrCh := make(chan error)
+	wg.Add(1)
+	go func() {
+		err := lp.Next(ctx, &wg)
+		if err != nil {
+			lErrCh <- fmt.Errorf("failed to handle event: %v", err)
+			return
+		}
+		lErrCh <- nil
+	}()
+	wg.Wait()
+	if err := <-rErrCh; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-lErrCh; err != nil {
+		t.Fatalf("failed to handle event: %v", err)
+	}
+
+	got := lp.State
+	want := OpenConfirm
+	if got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}

@@ -18,6 +18,7 @@ const (
 	Idle State = iota
 	Connect
 	OpenSent
+	OpenConfirm
 )
 
 // BGPのRFCで示されている実装方針
