@@ -39,8 +39,9 @@ func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("connection dial canceled")
-			case err := <-c.dial(cfg):
-				if err == nil {
+			case err, ok := <-c.dial(cfg):
+				if !ok {
+					c.buf = make([]byte, 0, 1500)
 					return nil
 				}
 				log.Printf("connection dial error: %v", err)
@@ -48,52 +49,64 @@ func (c *conn) connect(ctx context.Context, cfg *config.Config) error {
 			}
 		}
 	case config.Passive:
-		err := c.accept(cfg)
-		if err != nil {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("connection dial canceled")
+		case err, ok := <-c.accept(cfg):
+			if !ok {
+				c.buf = make([]byte, 0, 1500)
+				return nil
+			}
 			return fmt.Errorf("connection accept error: %v", err)
 		}
+	default:
+		return fmt.Errorf("invalid mode: %v", cfg.Mode())
 	}
-	c.buf = make([]byte, 0, 1500)
-	return nil
 }
 
 func (c *conn) dial(cfg *config.Config) <-chan error {
-	laddr := &net.TCPAddr{
-		IP:   cfg.LocalIP(),
-		Port: BGPPort,
-	}
-	raddr := &net.TCPAddr{
-		IP:   cfg.RemoteIP(),
-		Port: BGPPort,
-	}
 	ech := make(chan error)
 	go func() {
+		defer close(ech)
+		laddr := &net.TCPAddr{
+			IP:   cfg.LocalIP(),
+			Port: BGPPort,
+		}
+		raddr := &net.TCPAddr{
+			IP:   cfg.RemoteIP(),
+			Port: BGPPort,
+		}
 		conn, err := net.DialTCP("tcp", laddr, raddr)
 		if err != nil {
 			ech <- err
 			return
 		}
 		c.TCPConn = conn
-		ech <- nil
 	}()
 	return ech
 }
 
-func (c *conn) accept(cfg *config.Config) error {
-	laddr := &net.TCPAddr{
-		IP:   cfg.LocalIP(),
-		Port: BGPPort,
-	}
-	listener, err := net.ListenTCP("tcp", laddr)
-	if err != nil {
-		return err
-	}
-	conn, err := listener.AcceptTCP()
-	if err != nil {
-		return err
-	}
-	c.TCPConn = conn
-	return nil
+func (c *conn) accept(cfg *config.Config) <-chan error {
+	ech := make(chan error)
+	go func() {
+		defer close(ech)
+		laddr := &net.TCPAddr{
+			IP:   cfg.LocalIP(),
+			Port: BGPPort,
+		}
+		listener, err := net.ListenTCP("tcp", laddr)
+		if err != nil {
+			ech <- err
+			return
+		}
+		conn, err := listener.AcceptTCP()
+		if err != nil {
+			ech <- err
+			return
+		}
+		c.TCPConn = conn
+	}()
+	return ech
 }
 
 func (c *conn) writeMsg(m message.Message) error {
