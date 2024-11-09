@@ -28,8 +28,8 @@ const (
 type Peer struct {
 	State      State
 	eventQueue chan event.Event
-	conn       *conn
-	config     *config.Config
+	*conn
+	config *config.Config
 }
 
 func New(c *config.Config) *Peer {
@@ -77,7 +77,7 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 	case Idle:
 		if ev == event.ManualStart {
 			var err error
-			p.conn, err = newConnect(ctx, p.config)
+			p.conn, err = newConnection(ctx, p.config)
 			if err != nil {
 				return fmt.Errorf("connection error: %v", err)
 			}
@@ -89,14 +89,14 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			if p.conn == nil {
 				return fmt.Errorf("TCP Conectionが確立されていません")
 			}
-			m, err := message.NewOpenMsg(
+			om, err := message.NewOpenMsg(
 				p.config.LocalAS(),
 				p.config.LocalIP(),
 			)
 			if err != nil {
 				return err
 			}
-			if err = p.conn.writeMsg(m); err != nil {
+			if err = p.writeMsg(om); err != nil {
 				return err
 			}
 			p.State = OpenSent
