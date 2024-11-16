@@ -10,11 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[ManualStart-0]
 	_ = x[TCPConnectionConfirmed-1]
+	_ = x[BGPOpen-2]
 }
 
-const _Event_name = "ManualStartTCPConnectionConfirmed"
+const _Event_name = "ManualStartTCPConnectionConfirmedBGPOpen"
 
-var _Event_index = [...]uint8{0, 11, 33}
+var _Event_index = [...]uint8{0, 11, 33, 40}
 
 func (i Event) String() string {
 	if i < 0 || i >= Event(len(_Event_index)-1) {

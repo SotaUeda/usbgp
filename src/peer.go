@@ -32,6 +32,13 @@ type Peer struct {
 	config *config.Config
 }
 
+// メッセージの送受信を行うためのChannel
+var (
+	send chan message.Message
+	recv chan message.Message
+	ech  chan error
+)
+
 func New(c *config.Config) *Peer {
 	return &Peer{
 		// Stateはnil
@@ -59,6 +66,15 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 			return err
 		}
 		return nil
+	case rm := <-recv:
+		log.Printf("received message: %v\n", rm.Type())
+		if err := p.handleMessage(rm); err != nil {
+			return err
+		}
+		return nil
+	case me := <-ech:
+		log.Printf("send/recv error occured: %v\n", me)
+		return nil
 	}
 }
 
@@ -81,6 +97,16 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			if err != nil {
 				return fmt.Errorf("connection error: %v", err)
 			}
+			if p.conn == nil {
+				return fmt.Errorf("TCP Connectionが確立されていません")
+			}
+			ech = make(chan error)
+			send = make(chan message.Message)
+			recv = make(chan message.Message)
+			// // 送受信のgoroutineを起動
+			// // ここが原因？
+			// p.sendMsg(ctx, send, ech)
+			// p.recvMsg(ctx, recv, ech)
 			go func() { p.eventQueue <- event.TCPConnectionConfirmed }()
 			p.State = Connect
 		}
@@ -96,11 +122,27 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			if err != nil {
 				return err
 			}
-			if err = p.writeMsg(om); err != nil {
-				return err
-			}
+			// 送受信のgoroutineを起動
+			// ここに移動すると成功する。
+			p.sendMsg(ctx, send, ech)
+			p.recvMsg(ctx, recv, ech)
+			send <- om
 			p.State = OpenSent
 		}
+	case OpenSent:
+		if ev == event.BGPOpen {
+			// TODO: KeepAliveメッセージを送信
+			// send <- message.NewKeepAliveMsg()
+			p.State = OpenConfirm
+		}
+	}
+	return nil
+}
+
+func (p *Peer) handleMessage(m message.Message) error {
+	switch m.(type) {
+	case *message.OpenMessage:
+		go func() { p.eventQueue <- event.BGPOpen }()
 	}
 	return nil
 }

@@ -11,4 +11,5 @@ const (
 	// 正常系しか実装しない本実装では別のEventとして扱う意味がないため、
 	// TCPConnectionConfirmedはTcpCrAckedも兼ねている。
 	TCPConnectionConfirmed
+	BGPOpen
 )

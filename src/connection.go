@@ -84,6 +84,7 @@ func (c *conn) dial(cfg *config.Config) <-chan error {
 			ech <- err
 			return
 		}
+		log.Printf("dial connected to %v", conn.RemoteAddr())
 		c.TCPConn = conn
 	}()
 	return ech
@@ -107,6 +108,7 @@ func (c *conn) accept(cfg *config.Config) <-chan error {
 			ech <- err
 			return
 		}
+		log.Printf("accept connected from %v", conn.RemoteAddr())
 		c.TCPConn = conn
 	}()
 	return ech
@@ -129,8 +131,8 @@ func (c *conn) send(
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			err := c.writeMsg(<-mch)
+		case m := <-mch:
+			err := c.writeMsg(m)
 			if err != nil {
 				ech <- err
 			}
@@ -144,10 +146,11 @@ func (c *conn) writeMsg(m message.Message) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.Write(b)
+	n, err := c.Write(b)
 	if err != nil {
 		return err
 	}
+	log.Printf("sent message: %v, byte: %v", m.Type(), n)
 	return nil
 }
 
@@ -186,16 +189,15 @@ func (c *conn) recv(
 // BGP Messageを受信中（途中）あるいは
 // 何も受信していない場合はnilを返す。
 func (c *conn) readMsg() (message.Message, error) {
-	tmp := make([]byte, 0, 1500)
-	n, err := c.Read(tmp)
-	if err != nil && err != io.EOF {
+	t := make([]byte, 1500)
+	n, err := c.Read(t)
+	switch {
+	case err != nil:
 		return nil, err
-	}
-	// なにも受信していない場合
-	if n == 0 {
+	case n == 0 || err == io.EOF:
 		return nil, nil
 	}
-	c.buf = append(c.buf, tmp...)
+	c.buf = append(c.buf, t...)
 	b, err := c.splitMsg()
 	if err != nil {
 		return nil, err
@@ -216,15 +218,20 @@ func (c *conn) readMsg() (message.Message, error) {
 func (c *conn) splitMsg() ([]byte, error) {
 	// 1つのBGP Messageを表すbyteが揃っている場合
 	ml := msgLen(c.buf)
-	if ml != 0 {
-		b := c.buf[:ml]
-		c.buf = c.buf[ml:]
-		return b, nil
+	if ml == 0 || len(c.buf) < ml {
+		return nil, nil
 	}
-	// 1つのBGP Messageを表すbyteが揃っていない場合
-	return nil, nil
+	b := c.buf[:ml]
+	c.buf = c.buf[ml:]
+	return b, nil
 }
 
 // []byteのうちどこまでが1つのBGP Messageを表すbyteであるか、整数を返す
-// 1つのBGP Messageを表すbyteが揃っていない場合は0を返す
-func msgLen(b []byte) int {}
+// HeaderのLengthフィールドを参照して、BGP Messageの長さを取得する
+func msgLen(b []byte) int {
+	if len(b) < 19 {
+		// 19byte未満の場合は1つのBGP Messageを表すbyteが揃っていない
+		return 0
+	}
+	return int(b[16])<<8 | int(b[17])
+}
