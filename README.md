@@ -37,19 +37,21 @@
 ```mermaid
 stateDiagram-v2
   [*] --> Idle
-  Idle --> Connect:<b>ManualStart Event<b><br>対向機器とTCPコネクションの作成を試みる
-  Connect --> OpenSent:<b>TcpConnectionConfirmed Event<b><br>対向機器にBGP Open Messageを送信する
-  OpenSent --> OpenConfirm:<b>BGPOpen Event<b><br>対向機器にBGP Keepalive Messageを送信する
-  OpenConfirm --> Established:<b>KeepAliveMsg Event<b>
-  state Established {
-    EstablishedEvent --> AdjRibOutChangedEvent:LocRibの内容をAdjRibOutに反映する
-    UpdateMsgEvent --> AdjRibInChangedEvent:受信したBGP Update Messageの内容からAdjRibInを更新する
-    AdjRibInChangedEvent --> LocRibChangedEvent:AdjRibInの情報からLocRibを更新する
-    LocRibChangedEvent --> AdjRibOutChangedEvent:LocRibの内容をAdjRibOutに反映する
-    AdjRibOutChangedEvent --> [*]:Update Messageを作成し、対向機器へ送信する
-  }
-  Established --> Established
-```
+  Idle --> Connect:<b>ManualStart Event</b><br>対向機器とTCPコネクションの作成を試みる
+  Connect --> OpenSent:<b>TcpConnectionConfirmed Event</b><br>対向機器にBGP Open Messageを送信する
+  OpenSent --> OpenConfirm:<b>BGPOpen Event</b><br>対向機器にBGP Keepalive Messageを送信する
+  OpenConfirm --> Established:<b>KeepAliveMsg Event</b>
+  EstablishedEvent --> Established:LocRibの内容をAdjRibOutに反映する
+  UpdateMsgEvent --> Established:受信したBGP Update Messageの内容から AdjRibInを更新する
+  AdjRibInChangedEvent --> Established:AdjRibInの情報からLocRibを更新する
+  LocRibChangedEvent --> Established:LocRibの内容をAdjRibOutに反映する
+  AdjRibOutChangedEvent --> Established:Update Messageを作成し、対向機器へ送信する
+  Established --> EstablishedEvent
+  Established --> UpdateMsgEvent
+  Established --> AdjRibInChangedEvent
+  Established --> LocRibChangedEvent
+  Established --> AdjRibOutChangedEvent
+  ```
 
 ## BGP Message
 ### Headerフォーマット(19byte)
