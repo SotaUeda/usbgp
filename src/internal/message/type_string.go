@@ -9,16 +9,21 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Open-1]
+	_ = x[Keepalive-4]
 }
 
-const _Type_name = "Open"
-
-var _Type_index = [...]uint8{0, 4}
+const (
+	_Type_name_0 = "Open"
+	_Type_name_1 = "Keepalive"
+)
 
 func (i Type) String() string {
-	i -= 1
-	if i >= Type(len(_Type_index)-1) {
-		return "Type(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	switch {
+	case i == 1:
+		return _Type_name_0
+	case i == 4:
+		return _Type_name_1
+	default:
+		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
 }

@@ -88,6 +88,16 @@ func (p *Peer) Idle() error {
 	return nil
 }
 
+func (p *Peer) handleMessage(m message.Message) error {
+	switch m.(type) {
+	case *message.OpenMessage:
+		go func() { p.eventQueue <- event.BGPOpen }()
+	case *message.KeepaliveMessage:
+		go func() { p.eventQueue <- event.KeepAliveMsg }()
+	}
+	return nil
+}
+
 func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 	switch p.State {
 	case Idle:
@@ -131,18 +141,16 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 		}
 	case OpenSent:
 		if ev == event.BGPOpen {
-			// TODO: KeepAliveメッセージを送信
-			// send <- message.NewKeepAliveMsg()
+			if p.conn == nil {
+				return fmt.Errorf("TCP Connectionが確立されていません")
+			}
+			km, err := message.NewKeepaliveMsg()
+			if err != nil {
+				return err
+			}
+			send <- km
 			p.State = OpenConfirm
 		}
-	}
-	return nil
-}
-
-func (p *Peer) handleMessage(m message.Message) error {
-	switch m.(type) {
-	case *message.OpenMessage:
-		go func() { p.eventQueue <- event.BGPOpen }()
 	}
 	return nil
 }

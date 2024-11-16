@@ -6,7 +6,8 @@ type Type uint8
 
 //go:generate stringer -type=Type message.go
 const (
-	Open Type = 1
+	Open      Type = 1
+	Keepalive Type = 4
 )
 
 func newType(t uint8) (Type, error) {
@@ -45,6 +46,11 @@ func newHoldtime(ht uint16) (holdtime, error) {
 var defaultHoldtime = holdtime(0)
 
 // BGP Message
+
+func Marshal(m Message) ([]byte, error) {
+	return m.marshalBytes()
+}
+
 func UnMarshal(b []byte) (Message, error) {
 	hLen := 19
 	if len(b) < hLen {
@@ -63,11 +69,14 @@ func UnMarshal(b []byte) (Message, error) {
 			return nil, err
 		}
 		return o, nil
+	case Keepalive:
+		k := &KeepaliveMessage{header: h}
+		err := k.unMarshalBytes(b[hLen:])
+		if err != nil {
+			return nil, err
+		}
+		return k, nil
 	default:
 		return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.type_))
 	}
-}
-
-func Marshal(m Message) ([]byte, error) {
-	return m.marshalBytes()
 }

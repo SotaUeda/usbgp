@@ -12,4 +12,6 @@ const (
 	// TCPConnectionConfirmedはTcpCrAckedも兼ねている。
 	TCPConnectionConfirmed
 	BGPOpen
+	// BGPのRFC内での表記
+	KeepAliveMsg
 )
