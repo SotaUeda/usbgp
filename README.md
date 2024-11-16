@@ -51,6 +51,12 @@ stateDiagram-v2
   Established --> AdjRibInChangedEvent
   Established --> LocRibChangedEvent
   Established --> AdjRibOutChangedEvent
+
+  style EstablishedEvent fill:#eee,stroke:#fff
+  style UpdateMsgEvent fill:#eee,stroke:#fff
+  style AdjRibInChangedEvent fill:#eee,stroke:#fff
+  style LocRibChangedEvent fill:#eee,stroke:#fff
+  style AdjRibOutChangedEvent fill:#eee,stroke:#fff
   ```
 
 ## BGP Message
