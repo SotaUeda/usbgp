@@ -31,6 +31,7 @@ func TestMain(m *testing.M) {
 		65413,
 		"127.0.0.2",
 		config.Active,
+		nil,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -44,6 +45,7 @@ func TestMain(m *testing.M) {
 		64512,
 		"127.0.0.1",
 		config.Passive,
+		nil,
 	)
 	if err != nil {
 		log.Fatal(err)
