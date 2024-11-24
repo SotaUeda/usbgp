@@ -19,6 +19,7 @@ const (
 	Connect
 	OpenSent
 	OpenConfirm
+	Established
 )
 
 // BGPのRFCで示されている実装方針
@@ -51,7 +52,7 @@ func New(c *config.Config) *Peer {
 func (p *Peer) Start() {
 	log.Println("peer is started.")
 	p.State = Idle
-	go func() { p.eventQueue <- event.ManualStart }()
+	p.evEnqueue(event.ManualStart)
 }
 
 func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
@@ -66,14 +67,13 @@ func (p *Peer) Next(ctx context.Context, wg *sync.WaitGroup) error {
 			return err
 		}
 		return nil
-	case rm := <-recv:
-		log.Printf("received message: %v\n", rm.Type())
-		if err := p.handleMessage(rm); err != nil {
+	case r := <-recv:
+		if err := p.handleMessage(r); err != nil {
 			return err
 		}
 		return nil
-	case me := <-ech:
-		log.Printf("send/recv error occured: %v\n", me)
+	case e := <-ech:
+		log.Printf("send/recv error occured: %v\n", e)
 		return nil
 	}
 }
@@ -88,14 +88,8 @@ func (p *Peer) Idle() error {
 	return nil
 }
 
-func (p *Peer) handleMessage(m message.Message) error {
-	switch m.(type) {
-	case *message.OpenMessage:
-		go func() { p.eventQueue <- event.BGPOpen }()
-	case *message.KeepaliveMessage:
-		go func() { p.eventQueue <- event.KeepAliveMsg }()
-	}
-	return nil
+func (p *Peer) evEnqueue(ev event.Event) {
+	go func() { p.eventQueue <- ev }()
 }
 
 func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
@@ -117,8 +111,8 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			// // ここが原因？
 			// p.sendMsg(ctx, send, ech)
 			// p.recvMsg(ctx, recv, ech)
-			go func() { p.eventQueue <- event.TCPConnectionConfirmed }()
 			p.State = Connect
+			p.evEnqueue(event.TCPConnectionConfirmed)
 		}
 	case Connect:
 		if ev == event.TCPConnectionConfirmed {
@@ -151,6 +145,21 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			send <- km
 			p.State = OpenConfirm
 		}
+	case OpenConfirm:
+		if ev == event.KeepAliveMsg {
+			p.evEnqueue(event.Established)
+			p.State = Established
+		}
+	}
+	return nil
+}
+
+func (p *Peer) handleMessage(m message.Message) error {
+	switch m.(type) {
+	case *message.OpenMessage:
+		p.evEnqueue(event.BGPOpen)
+	case *message.KeepaliveMessage:
+		p.evEnqueue(event.KeepAliveMsg)
 	}
 	return nil
 }

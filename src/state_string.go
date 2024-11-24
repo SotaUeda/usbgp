@@ -12,11 +12,12 @@ func _() {
 	_ = x[Connect-1]
 	_ = x[OpenSent-2]
 	_ = x[OpenConfirm-3]
+	_ = x[Established-4]
 }
 
-const _State_name = "IdleConnectOpenSentOpenConfirm"
+const _State_name = "IdleConnectOpenSentOpenConfirmEstablished"
 
-var _State_index = [...]uint8{0, 4, 11, 19, 30}
+var _State_index = [...]uint8{0, 4, 11, 19, 30, 41}
 
 func (i State) String() string {
 	if i < 0 || i >= State(len(_State_index)-1) {

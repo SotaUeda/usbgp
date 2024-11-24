@@ -150,7 +150,7 @@ func (c *conn) writeMsg(m message.Message) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("sent message: %v, byte: %v", m.Type(), n)
+	log.Printf("sent message: %v, byte: %v. to %v", m.Type(), n, c.RemoteAddr())
 	return nil
 }
 
@@ -180,6 +180,7 @@ func (c *conn) recv(
 				mch <- m
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -192,12 +193,12 @@ func (c *conn) readMsg() (message.Message, error) {
 	t := make([]byte, 1500)
 	n, err := c.Read(t)
 	switch {
-	case err != nil:
-		return nil, err
 	case n == 0 || err == io.EOF:
 		return nil, nil
+	case err != nil:
+		return nil, err
 	}
-	c.buf = append(c.buf, t...)
+	c.buf = append(c.buf, t[:n]...)
 	b, err := c.splitMsg()
 	if err != nil {
 		return nil, err
@@ -210,6 +211,7 @@ func (c *conn) readMsg() (message.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("received message: %v. from %v", m.Type(), c.RemoteAddr())
 	return m, nil
 }
 
@@ -231,6 +233,8 @@ func (c *conn) splitMsg() ([]byte, error) {
 func msgLen(b []byte) int {
 	if len(b) < 19 {
 		// 19byte未満の場合は1つのBGP Messageを表すbyteが揃っていない
+		log.Printf("MessageのSeparateorを表すデータまでbufferに入っていません。"+
+			"データの受信が半端であることが想定されます。 buffer: %v", len(b))
 		return 0
 	}
 	return int(b[16])<<8 | int(b[17])

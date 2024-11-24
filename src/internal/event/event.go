@@ -14,4 +14,7 @@ const (
 	BGPOpen
 	// BGPのRFC内での表記
 	KeepAliveMsg
+	// StateがEstablishedに遷移したことを表す。
+	// 存在するほうが実装が楽なので追加したオリジナルのイベント
+	Established
 )

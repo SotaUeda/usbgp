@@ -16,4 +16,7 @@ else
     printf "\e[31m%s\e[m\n" "統合テストが失敗しました"
 fi
 
+docker container stop tests-host1-1 tests-host2-1
+docker container rm tests-host1-1 tests-host2-1
+
 exit $TEST_RESULT
