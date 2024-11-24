@@ -56,8 +56,8 @@ func main() {
 
 func parseConfig(s string) (*config.Config, error) {
 	cStrs := strings.Split(s, " ")
-	cLen := 5
-	if len(cStrs) != cLen {
+	cMinLen := 5
+	if len(cStrs) < cMinLen {
 		return nil, fmt.Errorf("invalid config string: %s, length: %v", s, len(cStrs))
 	}
 
@@ -87,5 +87,17 @@ func parseConfig(s string) (*config.Config, error) {
 			cStrs[4], s)
 	}
 
-	return config.New(lAS, lIP.String(), rAS, rIP.String(), mode)
+	if len(cStrs) == cMinLen {
+		return config.New(lAS, lIP.String(), rAS, rIP.String(), mode, nil)
+	}
+
+	nws := []*net.IPNet{}
+	for _, nw := range cStrs[5:] {
+		_, nw, err := net.ParseCIDR(nw)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse %v as network and config is %v", nw, s)
+		}
+		nws = append(nws, nw)
+	}
+	return config.New(lAS, lIP.String(), rAS, rIP.String(), mode, nws)
 }

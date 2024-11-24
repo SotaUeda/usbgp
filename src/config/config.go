@@ -13,6 +13,7 @@ type Config struct {
 	remoteAS bgp.ASNumber
 	remoteIP net.IP
 	mode     Mode
+	networks []*net.IPNet
 }
 
 type Mode int
@@ -37,7 +38,7 @@ func ParseMode(s string) (Mode, error) {
 func New(
 	localAS bgp.ASNumber, localIP string,
 	remoteAS bgp.ASNumber, remoteIP string,
-	mode Mode,
+	mode Mode, networks []*net.IPNet,
 ) (*Config, error) {
 	lIP := net.ParseIP(localIP)
 	if lIP == nil {
@@ -47,12 +48,29 @@ func New(
 	if rIP == nil {
 		return nil, fmt.Errorf("invalid remote IP address: %s", remoteIP)
 	}
+	nws := []*net.IPNet{}
+	if len(networks) > 0 {
+		for _, nw := range networks {
+			if nw == nil {
+				return nil, fmt.Errorf("invalid network: %v", nw)
+			}
+			v4 := nw.IP.To4()
+			if v4 == nil {
+				return nil, fmt.Errorf("invalid network: %v", nw)
+			}
+			nws = append(nws, &net.IPNet{
+				IP:   v4,
+				Mask: nw.Mask,
+			})
+		}
+	}
 	return &Config{
 		localAS:  localAS,
 		localIP:  lIP,
 		remoteAS: remoteAS,
 		remoteIP: rIP,
 		mode:     mode,
+		networks: nws,
 	}, nil
 }
 
@@ -74,4 +92,8 @@ func (c *Config) RemoteIP() net.IP {
 
 func (c *Config) Mode() Mode {
 	return c.mode
+}
+
+func (c *Config) Networks() []*net.IPNet {
+	return c.networks
 }
