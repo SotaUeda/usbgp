@@ -37,6 +37,27 @@ func TestHeaderMarshalAndUnmarshal(t *testing.T) {
 	}
 }
 
+func TestOpenMessageMarshalAndUnmarshal(t *testing.T) {
+	o, err := NewOpenMsg(
+		bgp.ASNumber(64512),
+		net.ParseIP("127.0.0.1"),
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	b, err := Marshal(o)
+	if err != nil {
+		t.Error(err)
+	}
+	o2, err := UnMarshal(b)
+	if err != nil {
+		t.Error(err)
+	}
+	if !openMsgeEqual(o, o2.(*OpenMessage)) {
+		t.Errorf("open message not equal: %v, %v", o, o2)
+	}
+}
+
 func openMsgeEqual(o1, o2 *OpenMessage) bool {
 	if !headerEqual(o1.header, o2.header) {
 		return false
@@ -62,23 +83,12 @@ func openMsgeEqual(o1, o2 *OpenMessage) bool {
 	return true
 }
 
-func TestOpenMessageMarshalAndUnmarshal(t *testing.T) {
-	o, err := NewOpenMsg(
-		bgp.ASNumber(64512),
-		net.ParseIP("127.0.0.1"),
-	)
-	if err != nil {
-		t.Error(err)
-	}
-	b, err := Marshal(o)
-	if err != nil {
-		t.Error(err)
-	}
-	o2, err := UnMarshal(b)
-	if err != nil {
-		t.Error(err)
-	}
-	if !openMsgeEqual(o, o2.(*OpenMessage)) {
-		t.Errorf("open message not equal: %v, %v", o, o2)
-	}
-}
+
+func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
+	u, err := NewUpdateMsg(
+		[]*bgp.PathAttribute{
+			bgp.NewPathAttributeOrigin(bgp.IGP),
+			bgp.NewPathAttributeAsPath([]bgp.ASPathSegment{
+				bgp.NewASPathSegment(bgp.AS_SEQUENCE, []uint16{64512, 64513}),
+			}),
+			bgp.NewPathAttributeNextHop(net.ParseIP("
