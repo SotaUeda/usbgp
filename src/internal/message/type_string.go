@@ -9,18 +9,24 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Open-1]
+	_ = x[Update-2]
 	_ = x[Keepalive-4]
 }
 
 const (
-	_Type_name_0 = "Open"
+	_Type_name_0 = "OpenUpdate"
 	_Type_name_1 = "Keepalive"
+)
+
+var (
+	_Type_index_0 = [...]uint8{0, 4, 10}
 )
 
 func (i Type) String() string {
 	switch {
-	case i == 1:
-		return _Type_name_0
+	case 1 <= i && i <= 2:
+		i -= 1
+		return _Type_name_0[_Type_index_0[i]:_Type_index_0[i+1]]
 	case i == 4:
 		return _Type_name_1
 	default:

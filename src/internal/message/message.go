@@ -7,6 +7,7 @@ type Type uint8
 //go:generate stringer -type=Type message.go
 const (
 	Open      Type = 1
+	Update    Type = 2
 	Keepalive Type = 4
 )
 
@@ -69,6 +70,10 @@ func UnMarshal(b []byte) (Message, error) {
 			return nil, err
 		}
 		return o, nil
+	case Update:
+		// TODO
+		u := &UpdateMessage{header: h}
+		return u, nil
 	case Keepalive:
 		k := &KeepaliveMessage{header: h}
 		err := k.unMarshalBytes(b[hLen:])

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/SotaUeda/usbgp/internal/bgp"
+	"github.com/SotaUeda/usbgp/internal/routing"
 )
 
 type Config struct {
@@ -13,7 +14,7 @@ type Config struct {
 	remoteAS bgp.ASNumber
 	remoteIP net.IP
 	mode     Mode
-	networks []*net.IPNet
+	networks []*routing.IPv4NetWork
 }
 
 type Mode int
@@ -48,7 +49,7 @@ func New(
 	if rIP == nil {
 		return nil, fmt.Errorf("invalid remote IP address: %s", remoteIP)
 	}
-	nws := []*net.IPNet{}
+	nws := []*routing.IPv4NetWork{}
 	if len(networks) > 0 {
 		for _, nw := range networks {
 			if nw == nil {
@@ -58,10 +59,11 @@ func New(
 			if v4 == nil {
 				return nil, fmt.Errorf("invalid network: %v", nw)
 			}
-			nws = append(nws, &net.IPNet{
-				IP:   v4,
-				Mask: nw.Mask,
-			})
+			nws = append(nws, &routing.IPv4NetWork{
+				IPNet: &net.IPNet{
+					IP:   v4,
+					Mask: nw.Mask,
+				}})
 		}
 	}
 	return &Config{
@@ -94,6 +96,6 @@ func (c *Config) Mode() Mode {
 	return c.mode
 }
 
-func (c *Config) Networks() []*net.IPNet {
+func (c *Config) Networks() []*routing.IPv4NetWork {
 	return c.networks
 }

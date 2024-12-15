@@ -1,10 +1,8 @@
-package peer
+package routing
 
 import (
 	"net"
 	"testing"
-
-	"github.com/SotaUeda/usbgp/config"
 )
 
 func TestLocRibCanLookupRoutingTable(t *testing.T) {
@@ -15,7 +13,7 @@ func TestLocRibCanLookupRoutingTable(t *testing.T) {
 		IP:   net.ParseIP("10.200.100.0"),
 		Mask: net.CIDRMask(24, 32),
 	}
-	lRib := newLocRib(config.Config{})
+	lRib := newLocRib()
 	get := lRib.lookupRT(&nw)
 	if len(get) == 0 {
 		t.Fatal("lookupRT() = 0, want 1")

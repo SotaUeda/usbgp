@@ -1,15 +1,22 @@
-package peer
+package routing
 
 import (
 	"net"
 
-	"github.com/SotaUeda/usbgp/config"
 	"github.com/vishvananda/netlink"
 )
 
+type IPv4NetWork struct {
+	*net.IPNet
+}
+
+func NewIPv4NetWork(nw *net.IPNet) *IPv4NetWork {
+	return &IPv4NetWork{nw}
+}
+
 type locRib struct{}
 
-func newLocRib(c config.Config) *locRib {
+func newLocRib() *locRib {
 	// TODO
 	return &locRib{}
 }

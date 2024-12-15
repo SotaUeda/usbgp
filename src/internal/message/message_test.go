@@ -7,6 +7,7 @@ import (
 
 	"github.com/SotaUeda/usbgp/internal/bgp"
 	"github.com/SotaUeda/usbgp/internal/pathattribute"
+	"github.com/SotaUeda/usbgp/internal/routing"
 )
 
 func TestHeaderMarshalAndUnmarshal(t *testing.T) {
@@ -51,22 +52,21 @@ func TestOpenMessageMarshalAndUnmarshal(t *testing.T) {
 
 func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
 	someAS := bgp.ASNumber(64513)
-	someIP := net.ParseIP("10.0.100.3")
 
 	localAS := bgp.ASNumber(64514)
 	localIP := net.ParseIP("10.200.100.3")
 
 	pas := []pathattribute.PathAttribute{
-		pathattribute.NewOrigin(pathattribute.IGP),
+		pathattribute.Igp,
 		pathattribute.NewASPath(pathattribute.ASSeq, []bgp.ASNumber{someAS, localAS}),
-		pathattribute.NewNextHop(localIP),
+		pathattribute.NextHop(localIP),
 	}
 
 	_, nw, _ := net.ParseCIDR("10.100.220.0/24")
-	u, err := NewUpdateMsg(
+	u, _ := NewUpdateMsg(
 		pas,
-		[]*net.IPNet{nw},
-		[]byte{},
+		[]*routing.IPv4NetWork{routing.NewIPv4NetWork(nw)},
+		[]*routing.IPv4NetWork{},
 	)
 
 	b, err := Marshal(u)
@@ -121,13 +121,13 @@ func updateMsgeEqual(u1, u2 *UpdateMessage) bool {
 	if !headerEqual(u1.header, u2.header) {
 		return false
 	}
-	if u1.wrLen != u2.wrLen {
+	if u1.wrBytesLen != u2.wrBytesLen {
 		return false
 	}
 	if !routeEqual(u1.withdrawnRoutes, u2.withdrawnRoutes) {
 		return false
 	}
-	if u1.pathAttrLen != u2.pathAttrLen {
+	if u1.pathAttrBytesLen != u2.pathAttrBytesLen {
 		return false
 	}
 	if !pathAttributesEqual(u1.pathAttributes, u2.pathAttributes) {
@@ -140,7 +140,7 @@ func updateMsgeEqual(u1, u2 *UpdateMessage) bool {
 	return true
 }
 
-func routeEqual(r1, r2 []*net.IPNet) bool {
+func routeEqual(r1, r2 []*routing.IPv4NetWork) bool {
 	if len(r1) != len(r2) {
 		return false
 	}
@@ -168,10 +168,7 @@ func pathAttributesEqual(pas1, pas2 []pathattribute.PathAttribute) bool {
 }
 
 func pathAttrEqual(pa1, pa2 pathattribute.PathAttribute) bool {
-	if pa1.(type) != pa2.(type) {
-		return false
-	}
-	if pa1.ExLen() != pa2.ExLen() {
+	if pa1.ExLenBit() != pa2.ExLenBit() {
 		return false
 	}
 	if pa1.AttrType() != pa2.AttrType() {
@@ -183,11 +180,11 @@ func pathAttrEqual(pa1, pa2 pathattribute.PathAttribute) bool {
 
 	switch pa1.(type) {
 	case pathattribute.Origin:
-		if pa1.Val() != pa2.Val() {
+		if pa1 != pa2 {
 			return false
 		}
-	case pathattribute.AsPath:
-		if !asPathEqual(pa1.(pathattribute.AsPath), pa2.(pathattribute.AsPath)) {
+	case pathattribute.ASPath:
+		if !asPathEqual(pa1.(pathattribute.ASPath), pa2.(pathattribute.ASPath)) {
 			return false
 		}
 		return true
@@ -205,10 +202,7 @@ func pathAttrEqual(pa1, pa2 pathattribute.PathAttribute) bool {
 	return false
 }
 
-func asPathEqual(ap1, ap2 pathattribute.AsPath) bool {
-	if ap1.(type) != ap2.(type) {
-		return false
-	}
+func asPathEqual(ap1, ap2 pathattribute.ASPath) bool {
 	if ap1.SegType() != ap2.SegType() {
 		return false
 	}
