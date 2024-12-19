@@ -1,17 +1,63 @@
 package routing
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/vishvananda/netlink"
 )
 
-type IPv4NetWork struct {
+type IPv4Net struct {
 	*net.IPNet
+	len uint16
 }
 
-func NewIPv4NetWork(nw *net.IPNet) *IPv4NetWork {
-	return &IPv4NetWork{nw}
+func NewIPv4NetWork(nw *net.IPNet) (*IPv4Net, error) {
+	if nw.IP.To4() == nil {
+		return nil, fmt.Errorf("IPv4アドレスにのみ対応しています: %v", nw)
+	}
+	ones, _ := nw.Mask.Size()
+	switch {
+	case ones == 0:
+		return &IPv4Net{
+			IPNet: nw,
+			len:   1,
+		}, nil
+	case ones <= 8:
+		return &IPv4Net{
+			IPNet: nw,
+			len:   2,
+		}, nil
+	case ones <= 16:
+		return &IPv4Net{
+			IPNet: nw,
+			len:   3,
+		}, nil
+	case ones <= 24:
+		return &IPv4Net{
+			IPNet: nw,
+			len:   4,
+		}, nil
+	case ones <= 32:
+		return &IPv4Net{
+			IPNet: nw,
+			len:   5,
+		}, nil
+	default:
+		return nil, fmt.Errorf("prefixが不正です: %v", nw)
+	}
+}
+
+func (i *IPv4Net) Len() uint16 {
+	return i.len
+}
+
+func (nw *IPv4Net) MarshalBytes() ([]byte, error) {
+	b := make([]byte, nw.len)
+	ones, _ := nw.Mask.Size()
+	b[0] = byte(ones)
+	copy(b[1:], nw.IP.To4())
+	return b, nil
 }
 
 type locRib struct{}

@@ -160,6 +160,8 @@ func (p *Peer) handleMessage(m message.Message) error {
 		p.evEnqueue(event.BGPOpen)
 	case *message.KeepaliveMessage:
 		p.evEnqueue(event.KeepAliveMsg)
+	case *message.UpdateMessage:
+		p.evEnqueue(event.UpdateMsg)
 	}
 	return nil
 }

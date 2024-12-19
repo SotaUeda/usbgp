@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/SotaUeda/usbgp/internal/bgp"
-	"github.com/SotaUeda/usbgp/internal/pathattribute"
+	"github.com/SotaUeda/usbgp/internal/message/pathattribute"
 	"github.com/SotaUeda/usbgp/internal/routing"
 )
 
@@ -54,19 +54,24 @@ func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
 	someAS := bgp.ASNumber(64513)
 
 	localAS := bgp.ASNumber(64514)
-	localIP := net.ParseIP("10.200.100.3")
+	localIP := net.ParseIP("10.200.100.3").To4()
 
+	// AttributeはStructにしたほうがよさそう
 	pas := []pathattribute.PathAttribute{
 		pathattribute.Igp,
-		pathattribute.NewASPath(pathattribute.ASSeq, []bgp.ASNumber{someAS, localAS}),
+		pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS}),
 		pathattribute.NextHop(localIP),
 	}
 
 	_, nw, _ := net.ParseCIDR("10.100.220.0/24")
+	ipv4nw, err := routing.NewIPv4NetWork(nw)
+	if err != nil {
+		t.Error(err)
+	}
 	u, _ := NewUpdateMsg(
 		pas,
-		[]*routing.IPv4NetWork{routing.NewIPv4NetWork(nw)},
-		[]*routing.IPv4NetWork{},
+		[]*routing.IPv4Net{ipv4nw},
+		[]*routing.IPv4Net{},
 	)
 
 	b, err := Marshal(u)
@@ -78,7 +83,7 @@ func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 	if !updateMsgeEqual(u, u2.(*UpdateMessage)) {
-		t.Errorf("update message not equal: %v, %v", u, u2)
+		t.Errorf("update message not equal:\n%v\n%v", u, u2)
 	}
 }
 
@@ -140,7 +145,7 @@ func updateMsgeEqual(u1, u2 *UpdateMessage) bool {
 	return true
 }
 
-func routeEqual(r1, r2 []*routing.IPv4NetWork) bool {
+func routeEqual(r1, r2 []*routing.IPv4Net) bool {
 	if len(r1) != len(r2) {
 		return false
 	}
@@ -168,13 +173,7 @@ func pathAttributesEqual(pas1, pas2 []pathattribute.PathAttribute) bool {
 }
 
 func pathAttrEqual(pa1, pa2 pathattribute.PathAttribute) bool {
-	if pa1.ExLenBit() != pa2.ExLenBit() {
-		return false
-	}
-	if pa1.AttrType() != pa2.AttrType() {
-		return false
-	}
-	if pa1.AttrLen() != pa2.AttrLen() {
+	if pa1.BytesLen() != pa2.BytesLen() {
 		return false
 	}
 
@@ -210,18 +209,18 @@ func asPathEqual(ap1, ap2 pathattribute.ASPath) bool {
 		return false
 	}
 	switch ap1.(type) {
-	case pathattribute.ASPathSeq:
-		seq1 := ap1.(pathattribute.ASPathSeq)
-		seq2 := ap2.(pathattribute.ASPathSeq)
+	case pathattribute.ASSequence:
+		seq1 := ap1.(pathattribute.ASSequence)
+		seq2 := ap2.(pathattribute.ASSequence)
 		for i, as1 := range seq1 {
 			if as1 != seq2[i] {
 				return false
 			}
 		}
 		return true
-	case pathattribute.ASPathSet:
-		set1 := ap1.(pathattribute.ASPathSet)
-		set2 := ap2.(pathattribute.ASPathSet)
+	case pathattribute.ASSet:
+		set1 := ap1.(pathattribute.ASSet)
+		set2 := ap2.(pathattribute.ASSet)
 		for as1 := range set1 {
 			_, ok := set2[as1]
 			return ok

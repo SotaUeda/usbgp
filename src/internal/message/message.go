@@ -73,6 +73,10 @@ func UnMarshal(b []byte) (Message, error) {
 	case Update:
 		// TODO
 		u := &UpdateMessage{header: h}
+		err := u.unMarshalBytes(b[hLen:])
+		if err != nil {
+			return nil, err
+		}
 		return u, nil
 	case Keepalive:
 		k := &KeepaliveMessage{header: h}

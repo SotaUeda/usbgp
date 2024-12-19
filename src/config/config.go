@@ -14,7 +14,7 @@ type Config struct {
 	remoteAS bgp.ASNumber
 	remoteIP net.IP
 	mode     Mode
-	networks []*routing.IPv4NetWork
+	networks []*routing.IPv4Net
 }
 
 type Mode int
@@ -49,7 +49,7 @@ func New(
 	if rIP == nil {
 		return nil, fmt.Errorf("invalid remote IP address: %s", remoteIP)
 	}
-	nws := []*routing.IPv4NetWork{}
+	nws := []*routing.IPv4Net{}
 	if len(networks) > 0 {
 		for _, nw := range networks {
 			if nw == nil {
@@ -59,7 +59,7 @@ func New(
 			if v4 == nil {
 				return nil, fmt.Errorf("invalid network: %v", nw)
 			}
-			nws = append(nws, &routing.IPv4NetWork{
+			nws = append(nws, &routing.IPv4Net{
 				IPNet: &net.IPNet{
 					IP:   v4,
 					Mask: nw.Mask,
@@ -96,6 +96,6 @@ func (c *Config) Mode() Mode {
 	return c.mode
 }
 
-func (c *Config) Networks() []*routing.IPv4NetWork {
+func (c *Config) Networks() []*routing.IPv4Net {
 	return c.networks
 }
