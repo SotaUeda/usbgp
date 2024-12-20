@@ -128,3 +128,12 @@ func (o *OpenMessage) unMarshalBytes(b []byte) error {
 
 	return nil
 }
+
+func (o *OpenMessage) String() string {
+	return fmt.Sprintf(
+		"OpenMessage{header: %v, version: %v, myAS: %v, "+
+			"holdtime: %v, bgpID: %v, optsLen: %v, opts: %v}",
+		o.header, o.version, o.myAS,
+		o.holdtime, o.bgpID, o.optsLen, o.opts,
+	)
+}

@@ -57,14 +57,18 @@ func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
 	localIP := net.ParseIP("10.200.100.3").To4()
 
 	// AttributeはStructにしたほうがよさそう
+	asp, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS})
+	if err != nil {
+		t.Error(err)
+	}
 	pas := []pathattribute.PathAttribute{
 		pathattribute.Igp,
-		pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS}),
+		asp,
 		pathattribute.NextHop(localIP),
 	}
 
 	_, nw, _ := net.ParseCIDR("10.100.220.0/24")
-	ipv4nw, err := routing.NewIPv4NetWork(nw)
+	ipv4nw, err := routing.NewIPv4Net(nw)
 	if err != nil {
 		t.Error(err)
 	}
@@ -91,7 +95,7 @@ func headerEqual(h1, h2 *Header) bool {
 	if h1.len != h2.len {
 		return false
 	}
-	if h1.type_ != h2.type_ {
+	if h1.msgType != h2.msgType {
 		return false
 	}
 	return true
@@ -150,7 +154,7 @@ func routeEqual(r1, r2 []*routing.IPv4Net) bool {
 		return false
 	}
 	for i, n1 := range r1 {
-		if !bytes.Equal(n1.IP, r2[i].IP) {
+		if !n1.IP.Equal(r2[i].IP) {
 			return false
 		}
 		if !bytes.Equal(n1.Mask, r2[i].Mask) {
@@ -182,6 +186,7 @@ func pathAttrEqual(pa1, pa2 pathattribute.PathAttribute) bool {
 		if pa1 != pa2 {
 			return false
 		}
+		return true
 	case pathattribute.ASPath:
 		if !asPathEqual(pa1.(pathattribute.ASPath), pa2.(pathattribute.ASPath)) {
 			return false

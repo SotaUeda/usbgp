@@ -4,6 +4,11 @@
 - https://github.com/Miyoshi-Ryota/how-to-create-bgp
 - https://github.com/Miyoshi-Ryota/mrbgpdv2
 
+## TODO
+- Marshalメソッドはerrorを返す必要がないかも
+  - オブジェクトが作成する段階でエラー処理、あとはイミュータブルにしておく
+  - UnMarshalは受信したデータが不正の可能性があるからerrorが必須
+
 ## 実装の段階
 以下の段階に分けてイベント駆動ステートマシンとしてBGPを実装していく。
 なお、正常系のみ実装する。

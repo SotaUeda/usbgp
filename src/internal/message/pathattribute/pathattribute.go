@@ -12,6 +12,75 @@ type PathAttribute interface {
 	MarshalBytes() ([]byte, error)
 }
 
+func NewPathAttributesFromBytes(b []byte) ([]PathAttribute, error) {
+	pas := make([]PathAttribute, 0)
+	for len(b) > 0 {
+		if len(b) < 3 {
+			return nil, fmt.Errorf("invalid path attribute length: %d", len(b))
+		}
+		// Attribute Flags
+		af := b[0]
+		// Attribute Type Code
+		atc := b[1]
+		// Attribute Length
+		// Attribute FlagsのExtended Length bitが立っているかを判定
+		// bitが立っている場合は、Attribute Lengthを表すoctetが2byteで表現される
+		al := uint16(b[2])
+		if af&0b00010000 != 0 {
+			al = uint16(b[2])<<8 + uint16(b[3])
+		}
+
+		i := 3
+		j := i + int(al)
+		if len(b) < j {
+			return nil, fmt.Errorf("PathAttributeのByte列が短すぎます length: %v", len(b))
+		}
+		// Attribute Value
+		av := b[3 : 3+al]
+		switch AttrType(atc) {
+		case ORG:
+			if len(av) != 1 {
+				return nil, fmt.Errorf("invalid origin length: %d", len(av))
+			}
+			o, err := NewOrigin(av[0])
+			if err != nil {
+				return nil, err
+			}
+			pas = append(pas, o)
+		case ASP:
+			if len(av) < 3 {
+				return nil, fmt.Errorf("invalid AS path length: %d", len(av))
+			}
+			st := ASPathSegmentType(av[0])
+			sl := int(av[1])
+			idx := 2
+			sv := make([]bgp.ASNumber, sl)
+			for i := 0; i < sl; i++ {
+				sv[i] = bgp.ASNumber(av[idx])<<8 + bgp.ASNumber(av[idx+1])
+				idx += 2
+			}
+			p, err := NewASPath(st, sv)
+			if err != nil {
+				return nil, err
+			}
+			pas = append(pas, p)
+		case NHP:
+			if len(av) != 4 {
+				return nil, fmt.Errorf("invalid next hop length: %d", len(av))
+			}
+			nh, err := NewNextHop(av)
+			if err != nil {
+				return nil, err
+			}
+			pas = append(pas, nh)
+		default:
+			pas = append(pas, DontKnow(b))
+		}
+		b = b[3+al:]
+	}
+	return pas, nil
+}
+
 func bytesLen(i uint16) uint16 {
 	// flagを表す1byteと、typeを表す1byteを含める
 	len := i + 2
@@ -38,10 +107,22 @@ type Origin uint8
 
 //go:generate stringer -type=Origin pathattribute.go
 const (
-	Igp       Origin = 0
-	Egp       Origin = 1
-	Incomlete Origin = 2
+	Igp        Origin = 0
+	Egp        Origin = 1
+	Incomplete Origin = 2
 )
+
+func NewOrigin(o uint8) (Origin, error) {
+	switch o {
+	case 0:
+		return Igp, nil
+	case 1:
+		return Egp, nil
+	case 2:
+		return Incomplete, nil
+	}
+	return 0, fmt.Errorf("invalid Origin: %d", o)
+}
 
 func (o Origin) BytesLen() uint16 {
 	return bytesLen(1)
@@ -195,21 +276,28 @@ func (set ASSet) MarshalBytes() ([]byte, error) {
 	return b, nil
 }
 
-func NewASPath(t ASPathSegmentType, as []bgp.ASNumber) ASPath {
+func NewASPath(t ASPathSegmentType, as []bgp.ASNumber) (ASPath, error) {
 	switch t {
 	case ASSegTypeSequence:
-		return ASSequence(as)
+		return ASSequence(as), nil
 	case ASSegTypeSet:
 		set := make(map[bgp.ASNumber]struct{})
 		for _, a := range as {
 			set[a] = struct{}{}
 		}
-		return ASSet(set)
+		return ASSet(set), nil
 	}
-	return nil
+	return nil, fmt.Errorf("invalid ASPathSegmentType: %d", t)
 }
 
 type NextHop []byte
+
+func NewNextHop(n []byte) (NextHop, error) {
+	if len(n) != 4 {
+		return nil, fmt.Errorf("invalid next hop length: %d", len(n))
+	}
+	return NextHop(n), nil
+}
 
 func (n NextHop) BytesLen() uint16 {
 	return bytesLen(4)

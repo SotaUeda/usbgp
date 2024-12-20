@@ -39,7 +39,7 @@ func NewUpdateMsg(
 		if l == 0 {
 			return nil, fmt.Errorf("NLRIの長さが0です: %v", n)
 		}
-		nlriLen += l
+		nlriLen += uint16(l)
 	}
 	wrLen := uint16(0)
 	for _, w := range wr {
@@ -47,7 +47,7 @@ func NewUpdateMsg(
 		if l == 0 {
 			return nil, fmt.Errorf("NLRIの長さが0です: %v", w)
 		}
-		wrLen += l
+		wrLen += uint16(l)
 	}
 	hMinLen := uint16(19)
 	h, err := newHeader(
@@ -86,26 +86,26 @@ func (u *UpdateMessage) marshalBytes() ([]byte, error) {
 	b[19] = uint8(wrLen >> 8)
 	b[20] = uint8(wrLen)
 	// Withdrawn Routes
-	Idx := 21
+	i := 21
 	for _, w := range u.withdrawnRoutes {
 		wb, err := w.MarshalBytes()
 		if err != nil {
 			return nil, err
 		}
-		Idx += copy(b[Idx:], wb)
+		i += copy(b[i:], wb)
 	}
 	// Path Attributes Length
 	paLen := u.pathAttrBytesLen
-	b[Idx] = uint8(paLen >> 8)
-	b[Idx+1] = uint8(paLen)
+	b[i] = uint8(paLen >> 8)
+	b[i+1] = uint8(paLen)
 	// Path Attributes
-	Idx += 2
+	i += 2
 	for _, pa := range u.pathAttributes {
 		pab, err := pa.MarshalBytes()
 		if err != nil {
 			return nil, err
 		}
-		Idx += copy(b[Idx:], pab)
+		i += copy(b[i:], pab)
 	}
 	// NLRI
 	for _, n := range u.nlri {
@@ -113,12 +113,82 @@ func (u *UpdateMessage) marshalBytes() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		Idx += copy(b[Idx:], nb)
+		i += copy(b[i:], nb)
 	}
 	return b, nil
 }
 
 func (u *UpdateMessage) unMarshalBytes(b []byte) error {
-	// TODO
+	// Header
+	// message.goから利用する場合、Headerは作成済
+	if u.header == nil {
+		hLen := 19
+		h := &Header{}
+		err := h.unMarshalBytes(b[:hLen])
+		if err != nil {
+			return err
+		}
+		u.header = h
+		b = b[hLen:]
+	}
+
+	// Withdrawn Routes Length
+	if len(b) < 2 {
+		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
+	}
+	u.wrBytesLen = uint16(b[0])<<8 | uint16(b[1])
+
+	// Withdrawn Routes
+	i := 2
+	j := i + int(u.wrBytesLen)
+	if len(b) < j {
+		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
+	}
+	wr, err := routing.NewIPv4NetsFromBytes(b[i:j])
+	if err != nil {
+		err := ConvMsgErr{Err: err}
+		return err
+	}
+	u.withdrawnRoutes = wr
+
+	// Path Attributes Length
+	i = j
+	j = i + 2
+	if len(b) < j {
+		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
+	}
+	u.pathAttrBytesLen = uint16(b[i])<<8 | uint16(b[i+1])
+
+	// Path Attributes
+	i = j
+	j = i + int(u.pathAttrBytesLen)
+	if len(b) < j {
+		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
+	}
+	pas, err := pathattribute.NewPathAttributesFromBytes(b[i:j])
+	if err != nil {
+		err := ConvMsgErr{Err: err}
+		return err
+	}
+	u.pathAttributes = pas
+
+	// NLRI
+	i = j
+	nlri, err := routing.NewIPv4NetsFromBytes(b[i:])
+	if err != nil {
+		err := ConvMsgErr{Err: err}
+		return err
+	}
+	u.nlri = nlri
+
 	return nil
+}
+
+func (u *UpdateMessage) String() string {
+	return fmt.Sprintf(
+		"UpdateMessage{header: %v, wrBytesLen: %v, withdrawnRoutes: %v, "+
+			"pathAttrBytesLen: %v, pathAttributes: %v, nlri: %v",
+		u.header, u.wrBytesLen, u.withdrawnRoutes,
+		u.pathAttrBytesLen, u.pathAttributes, u.nlri,
+	)
 }

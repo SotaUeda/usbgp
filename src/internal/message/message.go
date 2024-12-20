@@ -62,7 +62,7 @@ func UnMarshal(b []byte) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch h.type_ {
+	switch h.msgType {
 	case Open:
 		o := &OpenMessage{header: h}
 		err := o.unMarshalBytes(b[hLen:])
@@ -86,6 +86,6 @@ func UnMarshal(b []byte) (Message, error) {
 		}
 		return k, nil
 	default:
-		return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.type_))
+		return nil, NewConvMsgErr(fmt.Sprintf("未知のMessage Typeです: %d", h.msgType))
 	}
 }

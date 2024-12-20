@@ -10,12 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[Igp-0]
 	_ = x[Egp-1]
-	_ = x[Incomlete-2]
+	_ = x[Incomplete-2]
 }
 
-const _Origin_name = "IgpEgpIncomlete"
+const _Origin_name = "IgpEgpIncomplete"
 
-var _Origin_index = [...]uint8{0, 3, 6, 15}
+var _Origin_index = [...]uint8{0, 3, 6, 16}
 
 func (i Origin) String() string {
 	if i >= Origin(len(_Origin_index)-1) {
