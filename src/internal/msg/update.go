@@ -1,19 +1,19 @@
-package message
+package msg
 
 import (
 	"fmt"
 
-	"github.com/SotaUeda/usbgp/internal/message/pathattribute"
-	"github.com/SotaUeda/usbgp/internal/routing"
+	"github.com/SotaUeda/usbgp/internal/ip"
+	"github.com/SotaUeda/usbgp/internal/msg/pab"
 )
 
 type UpdateMessage struct {
 	header           *Header
 	wrBytesLen       uint16 // ルート数ではなく、bytesにしたときのオクテット数
-	withdrawnRoutes  []*routing.IPv4Net
+	withdrawnRoutes  []*ip.IPv4Net
 	pathAttrBytesLen uint16 // bytesにしたときのオクテット数
-	pathAttributes   []pathattribute.PathAttribute
-	nlri             []*routing.IPv4Net
+	pathAttributes   []pab.PathAttribute
+	nlri             []*ip.IPv4Net
 	// NLRIのオクテット数はBGP UpdateMessageに含めず、
 	// Headerのサイズを計算することにしか使用しないため、
 	// メンバに含めていない。
@@ -24,9 +24,9 @@ func (*UpdateMessage) Type() Type {
 }
 
 func NewUpdateMsg(
-	pas []pathattribute.PathAttribute,
-	nlri []*routing.IPv4Net,
-	wr []*routing.IPv4Net,
+	pas []pab.PathAttribute,
+	nlri []*ip.IPv4Net,
+	wr []*ip.IPv4Net,
 ) (*UpdateMessage, error) {
 	// PathAttributeの長さを計算
 	paLen := uint16(0)
@@ -144,7 +144,7 @@ func (u *UpdateMessage) unMarshalBytes(b []byte) error {
 	if len(b) < j {
 		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
 	}
-	wr, err := routing.NewIPv4NetsFromBytes(b[i:j])
+	wr, err := ip.NewIPv4NetsFromBytes(b[i:j])
 	if err != nil {
 		err := ConvMsgErr{Err: err}
 		return err
@@ -165,7 +165,7 @@ func (u *UpdateMessage) unMarshalBytes(b []byte) error {
 	if len(b) < j {
 		return NewConvMsgErr(fmt.Sprintf("UpdateMessageのByte列が短すぎます length: %v", len(b)))
 	}
-	pas, err := pathattribute.NewPathAttributesFromBytes(b[i:j])
+	pas, err := pab.NewPathAttributesFromBytes(b[i:j])
 	if err != nil {
 		err := ConvMsgErr{Err: err}
 		return err
@@ -174,7 +174,7 @@ func (u *UpdateMessage) unMarshalBytes(b []byte) error {
 
 	// NLRI
 	i = j
-	nlri, err := routing.NewIPv4NetsFromBytes(b[i:])
+	nlri, err := ip.NewIPv4NetsFromBytes(b[i:])
 	if err != nil {
 		err := ConvMsgErr{Err: err}
 		return err

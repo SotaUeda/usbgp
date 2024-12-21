@@ -1,10 +1,8 @@
-package routing
+package ip
 
 import (
 	"fmt"
 	"net"
-
-	"github.com/vishvananda/netlink"
 )
 
 type IPv4Net struct {
@@ -49,7 +47,6 @@ func NewIPv4Net(nw *net.IPNet) (*IPv4Net, error) {
 }
 
 func NewIPv4NetsFromBytes(b []byte) ([]*IPv4Net, error) {
-	// TODO
 	var nws []*IPv4Net
 	for len(b) > 0 {
 		ones := int(b[0])
@@ -94,27 +91,4 @@ func (nw *IPv4Net) MarshalBytes() ([]byte, error) {
 	b[0] = byte(ones)
 	copy(b[1:], nw.IP.To4())
 	return b, nil
-}
-
-type locRib struct{}
-
-func newLocRib() *locRib {
-	// TODO
-	return &locRib{}
-}
-
-func (*locRib) lookupRT(nw *net.IPNet) []*net.IPNet {
-	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
-	if err != nil {
-		return nil
-	}
-	var r []*net.IPNet
-	p, _ := nw.Mask.Size()
-	for _, route := range routes {
-		dp, _ := route.Dst.Mask.Size()
-		if nw.IP.Equal(route.Dst.IP) && p == dp {
-			r = append(r, route.Dst)
-		}
-	}
-	return r
 }
