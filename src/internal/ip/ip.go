@@ -92,3 +92,7 @@ func (nw *IPv4Net) MarshalBytes() ([]byte, error) {
 	copy(b[1:], nw.IP.To4())
 	return b, nil
 }
+
+func (nw *IPv4Net) String() string {
+	return fmt.Sprintf("%s/%d len:%d", nw.IPNet.IP, nw.IPNet.Mask, nw.len)
+}

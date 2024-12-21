@@ -39,7 +39,7 @@ func ParseMode(s string) (Mode, error) {
 func New(
 	localAS bgp.ASNumber, localIP string,
 	remoteAS bgp.ASNumber, remoteIP string,
-	mode Mode, networks []*net.IPNet,
+	mode Mode, nets []*net.IPNet,
 ) (*Config, error) {
 	lIP := net.ParseIP(localIP)
 	if lIP == nil {
@@ -50,8 +50,8 @@ func New(
 		return nil, fmt.Errorf("invalid remote IP address: %s", remoteIP)
 	}
 	nws := []*ip.IPv4Net{}
-	if len(networks) > 0 {
-		for _, nw := range networks {
+	if len(nets) > 0 {
+		for _, nw := range nets {
 			if nw == nil {
 				return nil, fmt.Errorf("invalid network: %v", nw)
 			}

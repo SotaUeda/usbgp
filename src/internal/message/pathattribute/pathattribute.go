@@ -1,4 +1,4 @@
-package pab
+package pathattribute
 
 import (
 	"fmt"

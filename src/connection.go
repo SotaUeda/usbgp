@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/SotaUeda/usbgp/config"
-	"github.com/SotaUeda/usbgp/internal/msg"
+	"github.com/SotaUeda/usbgp/internal/message"
 )
 
 var BGPPort = 179
@@ -116,7 +116,7 @@ func (c *conn) accept(cfg *config.Config) <-chan error {
 
 func (c *conn) sendMsg(
 	ctx context.Context,
-	mch chan msg.Message,
+	mch chan message.Message,
 	ech chan error,
 ) {
 	go c.send(ctx, mch, ech)
@@ -124,7 +124,7 @@ func (c *conn) sendMsg(
 
 func (c *conn) send(
 	ctx context.Context,
-	mch chan msg.Message,
+	mch chan message.Message,
 	ech chan error,
 ) {
 	for {
@@ -141,8 +141,8 @@ func (c *conn) send(
 }
 
 // メッセージの送信
-func (c *conn) writeMsg(m msg.Message) error {
-	b, err := msg.Marshal(m)
+func (c *conn) writeMsg(m message.Message) error {
+	b, err := message.Marshal(m)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (c *conn) writeMsg(m msg.Message) error {
 
 func (c *conn) recvMsg(
 	ctx context.Context,
-	mch chan msg.Message,
+	mch chan message.Message,
 	ech chan error,
 ) {
 	go c.recv(ctx, mch, ech)
@@ -164,7 +164,7 @@ func (c *conn) recvMsg(
 
 func (c *conn) recv(
 	ctx context.Context,
-	mch chan msg.Message,
+	mch chan message.Message,
 	ech chan error,
 ) {
 	for {
@@ -189,7 +189,7 @@ func (c *conn) recv(
 // 最も古く受信したMessageを返す。
 // BGP Messageを受信中（途中）あるいは
 // 何も受信していない場合はnilを返す。
-func (c *conn) readMsg() (msg.Message, error) {
+func (c *conn) readMsg() (message.Message, error) {
 	t := make([]byte, 1500)
 	n, err := c.Read(t)
 	switch {
@@ -207,7 +207,7 @@ func (c *conn) readMsg() (msg.Message, error) {
 	if b == nil {
 		return nil, nil
 	}
-	m, err := msg.UnMarshal(b)
+	m, err := message.UnMarshal(b)
 	if err != nil {
 		return nil, err
 	}

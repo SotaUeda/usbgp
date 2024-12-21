@@ -8,7 +8,7 @@ import (
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/event"
-	"github.com/SotaUeda/usbgp/internal/msg"
+	"github.com/SotaUeda/usbgp/internal/message"
 )
 
 type State int
@@ -35,8 +35,8 @@ type Peer struct {
 
 // メッセージの送受信を行うためのChannel
 var (
-	send chan msg.Message
-	recv chan msg.Message
+	send chan message.Message
+	recv chan message.Message
 	ech  chan error
 )
 
@@ -105,8 +105,8 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 				return fmt.Errorf("TCP Connectionが確立されていません")
 			}
 			ech = make(chan error)
-			send = make(chan msg.Message)
-			recv = make(chan msg.Message)
+			send = make(chan message.Message)
+			recv = make(chan message.Message)
 			// // 送受信のgoroutineを起動
 			// // ここが原因？
 			// p.sendMsg(ctx, send, ech)
@@ -119,7 +119,7 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			if p.conn == nil {
 				return fmt.Errorf("TCP Conectionが確立されていません")
 			}
-			om, err := msg.NewOpenMsg(
+			om, err := message.NewOpenMsg(
 				p.config.LocalAS(),
 				p.config.LocalIP(),
 			)
@@ -138,7 +138,7 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 			if p.conn == nil {
 				return fmt.Errorf("TCP Connectionが確立されていません")
 			}
-			km, err := msg.NewKeepaliveMsg()
+			km, err := message.NewKeepaliveMsg()
 			if err != nil {
 				return err
 			}
@@ -154,13 +154,13 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 	return nil
 }
 
-func (p *Peer) handleMessage(m msg.Message) error {
+func (p *Peer) handleMessage(m message.Message) error {
 	switch m.(type) {
-	case *msg.OpenMessage:
+	case *message.OpenMessage:
 		p.evEnqueue(event.BGPOpen)
-	case *msg.KeepaliveMessage:
+	case *message.KeepaliveMessage:
 		p.evEnqueue(event.KeepAliveMsg)
-	case *msg.UpdateMessage:
+	case *message.UpdateMessage:
 		p.evEnqueue(event.UpdateMsg)
 	}
 	return nil
