@@ -1,13 +1,14 @@
 package rib
 
 import (
+	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/ip"
 	"github.com/vishvananda/netlink"
 )
 
 type locRIB struct{}
 
-func NewLocRib() *locRIB {
+func NewLocRib(c *config.Config) *locRIB {
 	// TODO
 	return &locRIB{}
 }
