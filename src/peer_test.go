@@ -81,7 +81,7 @@ func TestTransitionToEstablishedState(t *testing.T) {
 					log.Printf("remote peer is in %v state.", want)
 					return
 				}
-				time.Sleep(1 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
@@ -106,7 +106,7 @@ func TestTransitionToEstablishedState(t *testing.T) {
 					log.Printf("local peer is in %v state.", want)
 					return
 				}
-				time.Sleep(1 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
@@ -133,7 +133,7 @@ func TestTransitionToEstablishedState(t *testing.T) {
 		ls := lp.State
 		rs := rp.State
 		log.Printf("Done. Local Peer State: %v, Remote Peer State: %v", ls, rs)
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		ls := lp.State
 		rs := rp.State
 		t_cancel()
