@@ -141,6 +141,7 @@ type ASPath interface {
 	asMarshalBytes() ([]byte, error)
 	SegType() ASPathSegmentType
 	SegLen() uint8 // ASの数を返す
+	Contains(bgp.ASNumber) bool
 }
 
 type ASPathSegmentType uint8
@@ -217,6 +218,15 @@ func (seq ASSequence) MarshalBytes() ([]byte, error) {
 	return b, nil
 }
 
+func (seq ASSequence) Contains(as bgp.ASNumber) bool {
+	for _, a := range seq {
+		if a == as {
+			return true
+		}
+	}
+	return false
+}
+
 type ASSet map[bgp.ASNumber]struct{}
 
 func (set ASSet) BytesLen() uint16 {
@@ -274,6 +284,11 @@ func (set ASSet) MarshalBytes() ([]byte, error) {
 		copy(b[3:], av)
 	}
 	return b, nil
+}
+
+func (set ASSet) Contains(as bgp.ASNumber) bool {
+	_, ok := set[as]
+	return ok
 }
 
 func NewASPath(t ASPathSegmentType, as []bgp.ASNumber) (ASPath, error) {

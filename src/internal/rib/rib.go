@@ -36,6 +36,16 @@ func (re *RIBEntry) String() string {
 	return fmt.Sprintf("RIBEntry{nw: %s, attrs: %v}", re.nw, re.attrs)
 }
 
+func (re *RIBEntry) containAS(as bgp.ASNumber) bool {
+	for _, attr := range re.attrs {
+		switch a := attr.(type) {
+		case pathattribute.ASPath:
+			return a.Contains(as)
+		}
+	}
+	return false
+}
+
 // AdjRIBIn / LocRIB / AdjRIBOutで同じようなデータ構造・処理をもつため、
 // 共通の処理はribオブジェクトに実装し、これらの3つの構造体のメンバにribを埋め込む。
 //
@@ -43,8 +53,18 @@ func (re *RIBEntry) String() string {
 type rib map[*RIBEntry]Status
 
 // RIB内にentryが存在しなければInsert
-func (rib) Insert(ent *RIBEntry) {
-	// TODO
+func (r rib) Insert(ent *RIBEntry) {
+	if _, ok := r[ent]; !ok {
+		r[ent] = New
+	}
+}
+
+func (r rib) Routes() []*RIBEntry {
+	rts := make([]*RIBEntry, 0, len(r))
+	for rt := range r {
+		rts = append(rts, rt)
+	}
+	return rts
 }
 
 type LocRIB struct {
@@ -53,11 +73,33 @@ type LocRIB struct {
 }
 
 func NewLocRib(c *config.Config) *LocRIB {
-	// TODO
-	return &LocRIB{
-		rib:     rib{},
+	// AS Pathは、ほかのピアから受信したルートと統一的に扱うために、
+	// LocRib -> AdjRIBOutにルートを送るときに、自分のAS番号を
+	// 追加するので、ここでは空にしておく。
+	ap, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{})
+	if err != nil {
+		return nil
+	}
+	pas := []pathattribute.PathAttribute{
+		pathattribute.Igp,
+		ap,
+		pathattribute.NextHop(c.LocalIP().To4()),
+	}
+	rib := rib{}
+
+	l := &LocRIB{
+		rib:     rib,
 		localAS: c.LocalAS(),
 	}
+
+	for _, nw := range c.Networks() {
+		rts := l.LookupRT(nw)
+		for _, rt := range rts {
+			l.Insert(NewRIBEntry(rt, pas))
+		}
+	}
+
+	return l
 }
 
 func (l *LocRIB) LookupRT(nw *ip.IPv4Net) []*ip.IPv4Net {
@@ -85,7 +127,6 @@ type AdjRIBOut struct {
 }
 
 func NewAdjRIBOut() *AdjRIBOut {
-	// TODO
 	return &AdjRIBOut{
 		rib: rib{},
 	}
@@ -94,5 +135,10 @@ func NewAdjRIBOut() *AdjRIBOut {
 // LocRIBから必要なルートをインストールする
 // この時、Remote AS番号が含まれているルートはインストールしない。
 func (ro *AdjRIBOut) Update(lr *LocRIB, c *config.Config) {
-	// TODO
+	for _, rt := range lr.Routes() {
+		if rt.containAS(c.RemoteAS()) {
+			continue
+		}
+		ro.Insert(rt)
+	}
 }

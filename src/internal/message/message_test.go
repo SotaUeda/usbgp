@@ -57,13 +57,13 @@ func TestUpdateMessageMarshalAndUnmarshal(t *testing.T) {
 	localAS := bgp.ASNumber(64514)
 	localIP := net.ParseIP("10.200.100.3").To4()
 
-	asp, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS})
+	ap, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS})
 	if err != nil {
 		t.Error(err)
 	}
 	pas := []pathattribute.PathAttribute{
 		pathattribute.Igp,
-		asp,
+		ap,
 		pathattribute.NextHop(localIP),
 	}
 
