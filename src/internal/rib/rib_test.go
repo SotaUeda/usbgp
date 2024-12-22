@@ -21,7 +21,7 @@ func TestLocRIBCanLookupRoutingTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lRib := &locRIB{}
+	lRib := &LocRIB{}
 	get := lRib.LookupRT(nw)
 	if len(get) == 0 {
 		t.Fatal("lookupRT() = 0, want 1")
@@ -43,10 +43,12 @@ func TestLocRibToAdjRIBOut(t *testing.T) {
 		IP:   net.ParseIP("10.100.220.0"),
 		Mask: net.CIDRMask(24, 32),
 	}
+	localAS := bgp.ASNumber(64513)
+	remoteAS := bgp.ASNumber(64512)
 	c, err := config.New(
-		64513,
+		localAS,
 		"10.200.100.3",
-		64512,
+		remoteAS,
 		"10.200.100.2",
 		config.Passive,
 		[]*net.IPNet{nw},
@@ -62,7 +64,7 @@ func TestLocRibToAdjRIBOut(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	asp, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, localAS})
+	asp, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{localAS, remoteAS})
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,7 +74,7 @@ func TestLocRibToAdjRIBOut(t *testing.T) {
 		pathattribute.NextHop(c.LocalIP().To4()),
 	}
 	want := NewAdjRIBOut()
-	want.insert(NewRibEntry(
+	want.Insert(NewRIBEntry(
 		ipn,
 		pas,
 	))
@@ -83,18 +85,18 @@ func TestLocRibToAdjRIBOut(t *testing.T) {
 }
 
 func adjRIBOutEqual(get, want *AdjRIBOut, t *testing.T) bool {
-	return ribEqual(get.rib, want.rib)
+	return ribEqual(get.rib, want.rib, t)
 }
 
-func ribEqual(get, want *RIB, t *testing.T) bool {
-	// get, wantそれぞれのRIBEntry(*IPv4Net, []PathAttribute)とREStatusを比較する必要がある
-	// RIBはmap[*RIBEntry]REStatusであるため、mapの順番は保証されないかつポインタのため比較ができない
+func ribEqual(get, want rib, t *testing.T) bool {
+	// get, wantそれぞれのRIBEntry(*IPv4Net, []PathAttribute)とStatusを比較する必要がある
+	// RIBはmap[*RIBEntry]Statusであるため、mapの順番は保証されないかつポインタのため比較ができない
 	// それぞれのRIBEntryを文字列として取得し、それをkeyとして新しいmapを作成し、それを比較する
-	getMap := make(map[string]REStatus)
+	getMap := make(map[string]Status)
 	for k, v := range get {
 		getMap[k.String()] = v
 	}
-	wantMap := make(map[string]REStatus)
+	wantMap := make(map[string]Status)
 	for k, v := range want {
 		wantMap[k.String()] = v
 	}
