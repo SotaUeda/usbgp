@@ -2,10 +2,12 @@ package rib
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/bgp"
 	"github.com/SotaUeda/usbgp/internal/ip"
+	"github.com/SotaUeda/usbgp/internal/message"
 	"github.com/SotaUeda/usbgp/internal/message/pathattribute"
 	"github.com/vishvananda/netlink"
 )
@@ -141,4 +143,9 @@ func (ro *AdjRIBOut) Update(lr *LocRIB, c *config.Config) {
 		}
 		ro.Insert(rt)
 	}
+}
+
+func (ro *AdjRIBOut) ToUpdateMessage(locIP net.IP, locAS bgp.ASNumber) (*message.UpdateMessage, error) {
+	// TODO
+	return nil, nil
 }
