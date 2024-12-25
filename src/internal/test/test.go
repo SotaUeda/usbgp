@@ -1,4 +1,4 @@
-package tfuncs
+package test
 
 import (
 	"bytes"
