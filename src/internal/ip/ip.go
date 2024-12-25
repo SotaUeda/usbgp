@@ -11,39 +11,29 @@ type IPv4Net struct {
 }
 
 func NewIPv4Net(nw *net.IPNet) (*IPv4Net, error) {
-	if nw.IP.To4() == nil {
+	nw.IP = nw.IP.To4()
+	if nw.IP == nil {
 		return nil, fmt.Errorf("IPv4アドレスにのみ対応しています: %v", nw)
+	}
+	ipv4nw := &IPv4Net{
+		IPNet: nw,
 	}
 	ones, _ := nw.Mask.Size()
 	switch {
 	case ones == 0:
-		return &IPv4Net{
-			IPNet: nw,
-			len:   1,
-		}, nil
+		ipv4nw.len = 1
 	case ones <= 8:
-		return &IPv4Net{
-			IPNet: nw,
-			len:   2,
-		}, nil
+		ipv4nw.len = 2
 	case ones <= 16:
-		return &IPv4Net{
-			IPNet: nw,
-			len:   3,
-		}, nil
+		ipv4nw.len = 3
 	case ones <= 24:
-		return &IPv4Net{
-			IPNet: nw,
-			len:   4,
-		}, nil
+		ipv4nw.len = 4
 	case ones <= 32:
-		return &IPv4Net{
-			IPNet: nw,
-			len:   5,
-		}, nil
+		ipv4nw.len = 5
 	default:
 		return nil, fmt.Errorf("prefixが不正です: %v", nw)
 	}
+	return ipv4nw, nil
 }
 
 func NewIPv4NetsFromBytes(b []byte) ([]*IPv4Net, error) {
