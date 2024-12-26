@@ -3,6 +3,7 @@ package rib
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/bgp"
@@ -23,22 +24,28 @@ const (
 )
 
 type RIBEntry struct {
+	mu    sync.RWMutex
 	nw    *ip.IPv4Net
 	attrs []pathattribute.PathAttribute
 }
 
 func NewRIBEntry(nw *ip.IPv4Net, attrs []pathattribute.PathAttribute) *RIBEntry {
 	return &RIBEntry{
+		mu:    sync.RWMutex{},
 		nw:    nw,
 		attrs: attrs,
 	}
 }
 
 func (re *RIBEntry) String() string {
+	re.mu.RLock()
+	defer re.mu.RUnlock()
 	return fmt.Sprintf("RIBEntry{nw: %s, attrs: %v}", re.nw, re.attrs)
 }
 
 func (re *RIBEntry) containAS(as bgp.ASNumber) bool {
+	re.mu.RLock()
+	defer re.mu.RUnlock()
 	for _, attr := range re.attrs {
 		switch a := attr.(type) {
 		case pathattribute.ASPath:
@@ -56,6 +63,8 @@ type rib map[*RIBEntry]Status
 
 // RIB内にentryが存在しなければInsert
 func (r rib) Insert(ent *RIBEntry) {
+	ent.mu.RLock()
+	defer ent.mu.RUnlock()
 	if _, ok := r[ent]; !ok {
 		r[ent] = New
 	}
@@ -64,7 +73,9 @@ func (r rib) Insert(ent *RIBEntry) {
 func (r rib) Routes() []*RIBEntry {
 	rts := make([]*RIBEntry, 0, len(r))
 	for rt := range r {
+		rt.mu.RLock()
 		rts = append(rts, rt)
+		rt.mu.RUnlock()
 	}
 	return rts
 }
@@ -145,7 +156,60 @@ func (ro *AdjRIBOut) Update(lr *LocRIB, c *config.Config) {
 	}
 }
 
-func (ro *AdjRIBOut) ToUpdateMessage(locIP net.IP, locAS bgp.ASNumber) (*message.UpdateMessage, error) {
-	// TODO
-	return nil, nil
+// AdjRIBOutからUpadateMessageを生成する
+// PathAttributeごとにUpdateMessageが分かれるため、
+// []*message.UpdateMessageを戻り値にしている。
+func (ro *AdjRIBOut) ToUpdateMessage(locIP net.IP, locAS bgp.ASNumber) ([]*message.UpdateMessage, error) {
+	// IPv4のみ対応
+	locIP = locIP.To4()
+	if locIP == nil {
+		return nil, fmt.Errorf("support IPv4 only")
+	}
+	// 書籍のRustによる実装では、
+	// PathAttributeをKeyに、Vec<IPv4Network>をValueのHashMapを使って、
+	// 同じPathAttributeのNLRIは同じVec<IPv4Network>にまとめている。
+	// ここで同じPathAttributeとされた経路は1つのUpdateMessageにまとめられる。
+	hashMap := map[*[]pathattribute.PathAttribute][]*ip.IPv4Net{}
+	for _, e := range ro.Routes() {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		// Hashとしてポインタを使っているが、
+		// "同じPathAttribute"とは、PathAttributeの中身が同じであることを指す?
+		h := &e.attrs
+		if _, ok := hashMap[h]; !ok {
+			hashMap[h] = append(hashMap[h], e.nw)
+		} else {
+			hashMap[h] = []*ip.IPv4Net{e.nw}
+		}
+	}
+
+	// UpdateMessageを生成する
+	var ums []*message.UpdateMessage
+	for pas, nws := range hashMap {
+		// PathAttributeのうちNexthopまたはASPathを変更する
+		// Nexthopはlocal ipに変更、
+		// ASPathはlocal asを追加
+		for i, p := range *pas {
+			switch p := p.(type) {
+			case pathattribute.NextHop:
+				n, err := pathattribute.NewNextHop(locIP)
+				if err != nil {
+					return nil, err
+				}
+				copy(p, n)
+			case pathattribute.ASPath:
+				a, err := pathattribute.AppendASPath(p, locAS)
+				if err != nil {
+					return nil, err
+				}
+				(*pas)[i] = a
+			}
+		}
+		um, err := message.NewUpdateMsg(*pas, nws, nil)
+		if err != nil {
+			return nil, err
+		}
+		ums = append(ums, um)
+	}
+	return ums, nil
 }

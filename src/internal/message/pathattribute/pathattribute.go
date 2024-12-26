@@ -159,6 +159,19 @@ func asByteLen(a ASPath) uint16 {
 	return l + 1 + 1
 }
 
+func AppendASPath(ap ASPath, as bgp.ASNumber) (ASPath, error) {
+	switch a := (ap).(type) {
+	case ASSequence:
+		// appendは新しいスライス(構造体)を返す
+		a = append(a, as)
+		return a, nil
+	case ASSet:
+		a[as] = struct{}{}
+		return a, nil
+	}
+	return nil, fmt.Errorf("invalid ASPath type: %T", ap)
+}
+
 type ASSequence []bgp.ASNumber
 
 func (seq ASSequence) BytesLen() uint16 {

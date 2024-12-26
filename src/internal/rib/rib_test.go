@@ -136,6 +136,18 @@ func TestUpdateMessageFromAdjRIBOut(t *testing.T) {
 		rap,
 		pathattribute.NextHop(someIP),
 	}
+	aro := NewAdjRIBOut()
+	_, nw, _ := net.ParseCIDR("10.100.220.0/24")
+	ipv4nw, err := ip.NewIPv4Net(nw)
+	if err != nil {
+		t.Error(err)
+	}
+	re := NewRIBEntry(ipv4nw, ribPas)
+	aro.Insert(re)
+	get, err := aro.ToUpdateMessage(locIP, locAS)
+	if err != nil {
+		t.Error(err)
+	}
 
 	uap, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{someAS, locAS})
 	if err != nil {
@@ -146,13 +158,6 @@ func TestUpdateMessageFromAdjRIBOut(t *testing.T) {
 		uap,
 		pathattribute.NextHop(locIP),
 	}
-
-	aro := NewAdjRIBOut()
-
-	_, nw, _ := net.ParseCIDR("10.100.220.0/24")
-	ipv4nw, err := ip.NewIPv4Net(nw)
-	re := NewRIBEntry(ipv4nw, ribPas)
-	aro.Insert(re)
 	want, err := message.NewUpdateMsg(
 		updPas,
 		[]*ip.IPv4Net{ipv4nw},
@@ -162,13 +167,8 @@ func TestUpdateMessageFromAdjRIBOut(t *testing.T) {
 		t.Error(err)
 	}
 
-	get, err := aro.ToUpdateMessage(locIP, locAS)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if !updateMsgeEqual(want, get) {
-		t.Errorf("update message not equal:\n%v\n%v", want, get)
+	if !updateMsgeEqual(want, get[0]) {
+		t.Errorf("update message not equal:\n%v\n%v", want, get[0])
 	}
 }
 
