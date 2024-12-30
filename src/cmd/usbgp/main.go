@@ -15,6 +15,7 @@ import (
 	peer "github.com/SotaUeda/usbgp"
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/bgp"
+	"github.com/SotaUeda/usbgp/internal/rib"
 )
 
 func main() {
@@ -31,12 +32,25 @@ func main() {
 		cancel()
 	}()
 
+	cfgs := []*config.Config{}
+
 	for _, cStr := range cStrs {
 		c, err := parseConfig(cStr)
 		if err != nil {
 			log.Fatal(err)
 		}
-		p := peer.New(c)
+		cfgs = append(cfgs, c)
+	}
+
+	// LocRIBの生成
+	// この実装ではすべてのPeerで広告するネットワークが同じであることを前提としている。
+	lr, err := rib.NewLocRIB(cfgs[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, c := range cfgs {
+		p := peer.New(c, lr)
 		p.Start()
 		go func() {
 			for {

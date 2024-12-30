@@ -9,6 +9,7 @@ import (
 	"github.com/SotaUeda/usbgp/config"
 	"github.com/SotaUeda/usbgp/internal/event"
 	"github.com/SotaUeda/usbgp/internal/message"
+	"github.com/SotaUeda/usbgp/internal/rib"
 )
 
 type State int
@@ -31,6 +32,8 @@ type Peer struct {
 	eventQueue chan event.Event
 	*conn
 	config *config.Config
+	lrib   *rib.LocRIB
+	ribout *rib.AdjRIBOut
 }
 
 // メッセージの送受信を行うためのChannel
@@ -40,12 +43,14 @@ var (
 	ech  chan error
 )
 
-func New(c *config.Config) *Peer {
+func New(c *config.Config, lrib *rib.LocRIB) *Peer {
 	return &Peer{
 		// Stateはnil
 		eventQueue: make(chan event.Event),
 		conn:       nil,
 		config:     c,
+		lrib:       lrib,
+		ribout:     rib.NewAdjRIBOut(),
 	}
 }
 
@@ -149,6 +154,29 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 		if ev == event.KeepAliveMsg {
 			p.evEnqueue(event.Established)
 			p.State = Established
+		}
+	case Established:
+		switch ev {
+		case event.Established, event.LocRIBChanged:
+			p.ribout.Update(p.lrib, p.config)
+			if p.ribout.ContainNew() {
+				p.evEnqueue(event.AdjRIBOutChanged)
+				p.ribout.AllUnchanged()
+			}
+		case event.AdjRIBOutChanged:
+			ums, err := p.ribout.ToUpdateMessage(
+				p.config.LocalIP(),
+				p.config.LocalAS(),
+			)
+			if err != nil {
+				return err
+			}
+			for _, u := range ums {
+				if p.conn == nil {
+					return fmt.Errorf("TCP Connectionが確立されていません")
+				}
+				send <- u
+			}
 		}
 	}
 	return nil

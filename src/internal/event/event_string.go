@@ -14,11 +14,13 @@ func _() {
 	_ = x[KeepAliveMsg-3]
 	_ = x[UpdateMsg-4]
 	_ = x[Established-5]
+	_ = x[LocRIBChanged-6]
+	_ = x[AdjRIBOutChanged-7]
 }
 
-const _Event_name = "ManualStartTCPConnectionConfirmedBGPOpenKeepAliveMsgUpdateMsgEstablished"
+const _Event_name = "ManualStartTCPConnectionConfirmedBGPOpenKeepAliveMsgUpdateMsgEstablishedLocRIBChangedAdjRIBOutChanged"
 
-var _Event_index = [...]uint8{0, 11, 33, 40, 52, 61, 72}
+var _Event_index = [...]uint8{0, 11, 33, 40, 52, 61, 72, 85, 101}
 
 func (i Event) String() string {
 	if i < 0 || i >= Event(len(_Event_index)-1) {

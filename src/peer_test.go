@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/SotaUeda/usbgp/config"
+	"github.com/SotaUeda/usbgp/internal/rib"
 )
 
 var (
-	lp     Peer
-	rp     Peer
+	lp     *Peer
+	rp     *Peer
 	wg     sync.WaitGroup
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -21,7 +22,7 @@ var (
 
 func TestMain(m *testing.M) {
 	// テスト用にPort番号を変更
-	// BGPPort = 1799
+	BGPPort = 1799
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 	// テスト用のPeerを作成
@@ -36,7 +37,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	lp = *New(lcfg)
+	llr, err := rib.NewLocRIB(lcfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	lp = New(lcfg, llr)
 	lp.Start()
 	defer lp.Idle()
 	rcfg, err := config.New(
@@ -50,7 +55,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rp = *New(rcfg)
+	rlr, err := rib.NewLocRIB(rcfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rp = New(rcfg, rlr)
 	rp.Start()
 	defer rp.Idle()
 	m.Run()

@@ -19,4 +19,9 @@ const (
 	// StateがEstablishedに遷移したことを表す。
 	// 存在するほうが実装が楽なので追加したオリジナルのイベント
 	Established
+
+	// LocRIB / AdjRIBOutが変わったときのイベント
+	// 存在するほうが実装が楽なので追加
+	LocRIBChanged
+	AdjRIBOutChanged
 )

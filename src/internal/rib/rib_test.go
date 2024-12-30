@@ -57,7 +57,10 @@ func TestLocRibToAdjRIBOut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lr := NewLocRib(c)
+	lr, err := NewLocRIB(c)
+	if err != nil {
+		t.Fatal(err)
+	}
 	get := NewAdjRIBOut()
 	get.Update(lr, c)
 

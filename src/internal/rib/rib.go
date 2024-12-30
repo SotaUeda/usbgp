@@ -63,8 +63,6 @@ type rib map[*RIBEntry]Status
 
 // RIB内にentryが存在しなければInsert
 func (r rib) Insert(ent *RIBEntry) {
-	ent.mu.RLock()
-	defer ent.mu.RUnlock()
 	if _, ok := r[ent]; !ok {
 		r[ent] = New
 	}
@@ -72,26 +70,40 @@ func (r rib) Insert(ent *RIBEntry) {
 
 func (r rib) Routes() []*RIBEntry {
 	rts := make([]*RIBEntry, 0, len(r))
-	for rt := range r {
-		rt.mu.RLock()
-		rts = append(rts, rt)
-		rt.mu.RUnlock()
+	for e := range r {
+		rts = append(rts, e)
 	}
 	return rts
+}
+
+func (r rib) AllUnchanged() {
+	for e := range r {
+		r[e] = UnChanged
+	}
+}
+
+func (r rib) ContainNew() bool {
+	for _, s := range r {
+		if s == New {
+			return true
+		}
+	}
+	return false
 }
 
 type LocRIB struct {
 	rib
 	localAS bgp.ASNumber
+	mu      sync.RWMutex
 }
 
-func NewLocRib(c *config.Config) *LocRIB {
+func NewLocRIB(c *config.Config) (*LocRIB, error) {
 	// AS Pathは、ほかのピアから受信したルートと統一的に扱うために、
 	// LocRib -> AdjRIBOutにルートを送るときに、自分のAS番号を
 	// 追加するので、ここでは空にしておく。
 	ap, err := pathattribute.NewASPath(pathattribute.ASSegTypeSequence, []bgp.ASNumber{})
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	pas := []pathattribute.PathAttribute{
 		pathattribute.Igp,
@@ -112,10 +124,12 @@ func NewLocRib(c *config.Config) *LocRIB {
 		}
 	}
 
-	return l
+	return l, nil
 }
 
 func (l *LocRIB) LookupRT(nw *ip.IPv4Net) []*ip.IPv4Net {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
 	if err != nil {
 		return nil
@@ -148,6 +162,8 @@ func NewAdjRIBOut() *AdjRIBOut {
 // LocRIBから必要なルートをインストールする
 // この時、Remote AS番号が含まれているルートはインストールしない。
 func (ro *AdjRIBOut) Update(lr *LocRIB, c *config.Config) {
+	lr.mu.RLock()
+	defer lr.mu.RUnlock()
 	for _, rt := range lr.Routes() {
 		if rt.containAS(c.RemoteAS()) {
 			continue
