@@ -20,8 +20,9 @@ const (
 	// 存在するほうが実装が楽なので追加したオリジナルのイベント
 	Established
 
-	// LocRIB / AdjRIBOutが変わったときのイベント
+	// LocRIB / AdjRIBOut / AdjRIBIn が変わったときのイベント
 	// 存在するほうが実装が楽なので追加
 	LocRIBChanged
 	AdjRIBOutChanged
+	AdjRIBInChanged
 )

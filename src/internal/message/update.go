@@ -23,6 +23,14 @@ func (*UpdateMessage) Type() Type {
 	return Update
 }
 
+func (u *UpdateMessage) PathAttributes() []pathattribute.PathAttribute {
+	return u.pathAttributes
+}
+
+func (u *UpdateMessage) NLRI() []*ip.IPv4Net {
+	return u.nlri
+}
+
 func NewUpdateMsg(
 	pas []pathattribute.PathAttribute,
 	nlri []*ip.IPv4Net,

@@ -2,6 +2,7 @@ package rib
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
@@ -149,6 +150,48 @@ func (l *LocRIB) LookupRT(nw *ip.IPv4Net) []*ip.IPv4Net {
 	return r
 }
 
+func (l *LocRIB) WriteRT() {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	for _, e := range l.Routes() {
+		l.writeRT(e)
+	}
+}
+func (l *LocRIB) writeRT(e *RIBEntry) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	for _, a := range e.attrs {
+		switch a := a.(type) {
+		case pathattribute.NextHop:
+			nw := &net.IPNet{
+				IP:   e.nw.IP,
+				Mask: e.nw.Mask,
+			}
+			gw := net.IP(a).To4()
+			if err := netlink.RouteAdd(&netlink.Route{
+				Dst: nw,
+				Gw:  gw,
+			}); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+// AdjRIBInから必要なルートをLocRIBにインストールする
+func (l *LocRIB) Update(ri *AdjRIBIn) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	la := l.localAS
+	for _, rt := range ri.Routes() {
+		// 自ASが含まれているルートはインストールしない
+		if rt.containAS(la) {
+			continue
+		}
+		l.Insert(rt)
+	}
+}
+
 type AdjRIBOut struct {
 	rib
 }
@@ -228,4 +271,24 @@ func (ro *AdjRIBOut) ToUpdateMessage(locIP net.IP, locAS bgp.ASNumber) ([]*messa
 		ums = append(ums, um)
 	}
 	return ums, nil
+}
+
+type AdjRIBIn struct {
+	rib
+}
+
+func NewAdjRIBIn() *AdjRIBIn {
+	return &AdjRIBIn{
+		rib: rib{},
+	}
+}
+
+// UpdateMessageを受信したときに、AdjRIBInを更新する
+func (ri *AdjRIBIn) Update(um *message.UpdateMessage) {
+	// TODO: withdrawnに対応
+	for _, nw := range um.NLRI() {
+		// TODO: Pathattributeが同じであれば、同じRIBEntryにまとめなければならない
+		// 実装を見直す必要がある？
+		ri.Insert(NewRIBEntry(nw, um.PathAttributes()))
+	}
 }

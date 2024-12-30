@@ -30,10 +30,12 @@ const (
 type Peer struct {
 	State      State
 	eventQueue chan event.Event
+	msgQueue   chan message.Message // OpenMessageを扱うために使用
 	*conn
 	config *config.Config
 	lrib   *rib.LocRIB
 	ribout *rib.AdjRIBOut
+	ribin  *rib.AdjRIBIn
 }
 
 // メッセージの送受信を行うためのChannel
@@ -47,10 +49,12 @@ func New(c *config.Config, lrib *rib.LocRIB) *Peer {
 	return &Peer{
 		// Stateはnil
 		eventQueue: make(chan event.Event),
+		msgQueue:   make(chan message.Message),
 		conn:       nil,
 		config:     c,
 		lrib:       lrib,
 		ribout:     rib.NewAdjRIBOut(),
+		ribin:      rib.NewAdjRIBIn(),
 	}
 }
 
@@ -95,6 +99,10 @@ func (p *Peer) Idle() error {
 
 func (p *Peer) evEnqueue(ev event.Event) {
 	go func() { p.eventQueue <- ev }()
+}
+
+func (p *Peer) msgEnqueue(m message.Message) {
+	go func() { p.msgQueue <- m }()
 }
 
 func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
@@ -177,6 +185,24 @@ func (p *Peer) handleEvent(ctx context.Context, ev event.Event) error {
 				}
 				send <- u
 			}
+		case event.UpdateMsg:
+			u := <-p.msgQueue
+			switch u := u.(type) {
+			case *message.UpdateMessage:
+				p.ribin.Update(u)
+				if p.ribin.ContainNew() {
+					log.Println("AdjRIB IN is Updated.")
+					p.evEnqueue(event.AdjRIBInChanged)
+					p.ribin.AllUnchanged()
+				}
+			}
+		case event.AdjRIBInChanged:
+			p.lrib.Update(p.ribin)
+			if p.lrib.ContainNew() {
+				p.lrib.WriteRT()
+				p.evEnqueue(event.LocRIBChanged)
+				p.lrib.AllUnchanged()
+			}
 		}
 	}
 	return nil
@@ -189,6 +215,7 @@ func (p *Peer) handleMessage(m message.Message) error {
 	case *message.KeepaliveMessage:
 		p.evEnqueue(event.KeepAliveMsg)
 	case *message.UpdateMessage:
+		p.msgEnqueue(m)
 		p.evEnqueue(event.UpdateMsg)
 	}
 	return nil
