@@ -8,7 +8,41 @@
 - Marshalメソッドはerrorを返す必要がないかも
   - オブジェクトが作成する段階でエラー処理、あとはイミュータブルにしておく
   - UnMarshalは受信したデータが不正の可能性があるからerrorが必須
-- syncの利用
+- RIBEntryの実装の見直し
+  - 同じUpdateMessageを受けても、異なるRIBEntryに反映される可能性がある？
+
+## 他社実装との相互接続テスト
+```shell
+// frrのコンテナを起動し、shellに入る
+docker compose -f ./tests/docker-compose-frr.yml build --no-cache \
+&& docker compose -f ./tests/docker-compose-frr.yml up -d \
+&& docker compose -f ./tests/docker-compose-frr.yml exec frr /bin/bash
+
+// BGPを起動する
+/usr/lib/frr/bgpd -d -l 10.200.100.2
+
+// frrのshellに入る
+vtysh
+
+// コンフィギュレーションモードに入る
+conf t
+
+// コンフィグを投入
+no bgp no-rib 
+!
+router bgp 64512
+bgp router-id 10.200.100.2
+no bgp ebgp-requires-policy 
+neighbor 10.200.100.3 remote-as 65413
+neighbor 10.200.100.3 timers 0 0
+
+exit
+exit
+
+show ip bgp neighbors
+show ip route
+ping 10.100.220.3
+```
 
 ## 実装の段階
 以下の段階に分けてイベント駆動ステートマシンとしてBGPを実装していく。
