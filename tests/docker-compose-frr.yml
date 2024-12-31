@@ -10,9 +10,9 @@ services:
       - SYS_ADMIN 
     networks:
       bgp-test-network:
-        ipv4_address: 10.200.100.4
+        ipv4_address: 10.200.100.2
       frr-network:
-        ipv4_address: 10.100.230.4
+        ipv4_address: 10.100.230.2
     depends_on:
       - host2 # host2から起動するようにしているのは、現状の実装ではBGPのpassiveモード側から起動しないとネイバーがはれないため。
   host2:
